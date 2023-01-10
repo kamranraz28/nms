@@ -7,7 +7,7 @@
 
 
 
-## Technology Requirements
+## Technology Requirement
 
 
 ##### PHP ^8.1
