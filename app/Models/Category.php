@@ -1,0 +1,69 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+use Illuminate\Support\Str;
+use App\Scopes\ActiveScope;
+
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+
+
+class Category extends Model
+{
+    use HasFactory, LogsActivity;
+    public $timestamps = true;
+    protected $guarded = ['id'];
+    protected $parentColumn = 'parent_id';
+
+    protected static $recordEvents = ['updated','deleted'];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+        ->useLogName('categories')
+        ->logAll()
+        //->logOnly(['name'])
+        ->setDescriptionForEvent(fn(string $eventName) => $eventName)
+        //->dontLogIfAttributesChangedOnly(['sort'])
+        ->logOnlyDirty()
+        ->dontSubmitEmptyLogs();
+    }
+
+    public function getStatusAttribute($value)
+    {
+        return $status = (app()->getLocale() == 'en') ? Status::EN[$value] : Status::BN[$value];
+    }
+
+    // public function scopeActive($query)
+    // {
+    //     return $query->where('status',1);
+    // }
+
+
+    //Admin::withoutGlobalScopes([FirstScope::class, SecondScope::class])->get();
+
+    protected static function booted()
+    {
+        static::addGlobalScope(new ActiveScope);
+    }
+
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class,'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(Category::class, $this->parentColumn);
+    }
+
+    public function allChildren()
+    {
+        return $this->children()->with('allChildren');
+    }
+}
