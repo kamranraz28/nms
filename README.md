@@ -34,7 +34,13 @@ mkdir storage/framework/{sessions,views,cache}
 ##### Install [composer](https://getcomposer.org/) dependencies of this project by running
 
 ```sh
-composer install
+Run this command:
+
+composer install --ignore-platform-reqs
+
+or
+
+composer update --ignore-platform-reqs
 ```
 
 ##### Copy `.env-example` to `.env` and configure your database and other connection.
