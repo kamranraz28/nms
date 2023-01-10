@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# nms
-=======
 # Welcome to the Project Documentation
 
 - [Technology Requirements](#Technology-Requirements)
