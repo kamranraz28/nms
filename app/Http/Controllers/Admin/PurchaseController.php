@@ -29,14 +29,15 @@ class PurchaseController extends Controller
   public function index()
   {
     $this->authorize('read',Purchase::class);
-    $purchases = Purchase::with('purchaseDetail','nursery','approvedBy','division','district','upazila','stockType','budget','forestBeat')->lwd()->orderBy('id','desc')->paginate(100);
+    $purchases = Purchase::with('purchaseDetail','nursery','approvedBy','range_comment','acf_comment','dfo_comment','division','district','upazila','stockType','budget','forestBeat')->lwd()->orderBy('id','desc')->paginate(100);
+    // dd($purchases);
     return view(self::VIEW_PATH . 'index',compact('purchases'));
   }
 
   public function create()
   {
     $this->authorize('create',App\Purchase::class);
-    $nurseries = Nursery::lwd()->get();
+
     $stock_types = StockType::get();
     $price_types = PriceType::get();
     $budgets = Budget::get();
@@ -51,7 +52,7 @@ class PurchaseController extends Controller
       $forest_beats = ForestBeat::where('id',$authUser->forest_beat_id)->get();
     }
 
-    return view(self::VIEW_PATH . 'add_edit',compact('categories','stock_types','purchases','nurseries','price_types','budgets','forest_beats'));
+    return view(self::VIEW_PATH . 'add_edit',compact('categories','stock_types','purchases','price_types','budgets','forest_beats'));
   }
 
   public function print(Request $request, $id)
@@ -82,6 +83,7 @@ class PurchaseController extends Controller
         'alert-type' => 'error'
       ]);
     }
+    
 
     try {
       DB::beginTransaction();
@@ -93,7 +95,7 @@ class PurchaseController extends Controller
         ]);
       } elseif($authUser->userType->id == Admin::RO){
         //code    
-        if ($purchase->app_status == 1) {
+        if ($purchase->app_status == 1 && $purchase->range_comment== '') {
           $auth_id = Auth::guard('admin')->user()->id;
           DB::update('update purchase_details set app_status = 2, approved_by = ? where purchase_id = ?', [$auth_id,$id]);
           $purchase->approved_by = $auth_id;
@@ -114,7 +116,7 @@ class PurchaseController extends Controller
         //code          
       } elseif($authUser->userType->id == Admin::ACF){
         //code    
-        if ($purchase->app_status == 2) {
+        if ($purchase->app_status == 2 && $purchase->acf_comment == '' ) {
           $auth_id = Auth::guard('admin')->user()->id;
           DB::update('update purchase_details set app_status = 3, approved_by = ? where purchase_id = ?', [$auth_id,$id]);
           $purchase->approved_by = $auth_id;
@@ -135,7 +137,7 @@ class PurchaseController extends Controller
         //code  
       } elseif($authUser->userType->id == Admin::DFO){
         //code    
-        if ($purchase->app_status == 3) {
+        if ($purchase->app_status == 3 && $purchase->dfo_comment== '') {
           $auth_id = Auth::guard('admin')->user()->id;
           DB::update('update purchase_details set approved = 1, app_status = 4, approved_by = ? where purchase_id = ?', [$auth_id,$id]);
           $purchase->approved_by = $auth_id;
@@ -204,6 +206,121 @@ class PurchaseController extends Controller
     ]);
 
   }
+
+public function disapproval(Request $request)
+{
+  $auth_id = Auth::guard('admin')->user()->id;
+  // dd($auth_id);
+  $UserInfo = Admin:: find($auth_id);
+  // dd($UserInfo);
+  $roleId= $UserInfo->role_id;
+  // dd($roleId);
+  $comment = $request->input('inputValue');
+  // dd($comment);
+  $purchaseId = $request->input('inputId');
+  // dd($purchaseId);
+  $purchaseInfo = Purchase::find($purchaseId);
+  // dd($purchaseInfo);
+  $status = $purchaseInfo->app_status;
+  // dd($status);
+  if ($status !=4){
+
+
+  if ($roleId == 9 && $status==1 && $purchaseInfo) {
+      $purchaseInfo->update([
+          'range_comment' => $comment,
+      ]);
+  }elseif($roleId == 8 && $status==2 && $purchaseInfo){
+    $purchaseInfo->update([
+      'acf_comment' => $comment,
+  ]);
+  }elseif($roleId == 7 && $status==3 && $purchaseInfo){
+    $purchaseInfo->update([
+      'dfo_comment' => $comment,
+  ]);
+  }
+  else{
+    return back()->with([
+      'error' => __('admin.common.error_eligible_msg'),
+      'alert-type' => 'error'
+    ]);
+  }
+
+  if ($purchaseInfo->range_comment || $purchaseInfo->acf_comment || $purchaseInfo->dfo_comment) {
+    $purchaseInfo->update([
+        'disapprove_status' => 1,
+        'app_status' =>1,
+        'approved' =>0,
+
+    ]);
+}
+else{
+  return back()->with([
+    'error' => __('admin.common.error_eligible_msg'),
+    'alert-type' => 'error'
+  ]);
+}
+  }
+  else{
+    return back()->with([
+      'error' => __('admin.common.error_eligible_msg'),
+      'alert-type' => 'error'
+    ]);
+  }
+
+  return redirect()->back();
+}
+
+
+
+
+  public function disapproval_change(Request $request)
+  {
+    $auth_id = Auth::guard('admin')->user()->id;
+  // dd($auth_id);
+  $UserInfo = Admin:: find($auth_id);
+  // dd($UserInfo);
+  $roleId= $UserInfo->role_id;
+  // dd($roleId);
+  $purchaseId = $request->input('inputId');
+  // dd($purchaseId);
+  $purchaseInfo = Purchase::find($purchaseId);
+  // dd($purchaseInfo);
+
+  if ($roleId == 7) {
+    $purchaseInfo->update([
+        'dfo_comment' => ''
+    ]);
+  } elseif ($roleId == 8) {
+    $purchaseInfo->update([
+        'acf_comment' => ''
+    ]);
+  } elseif ($roleId == 9) {
+    $purchaseInfo->update([
+        'range_comment' => ''
+    ]);
+  }  else{
+    return back()->with([
+      'error' => __('admin.common.error_eligible_msg'),
+      'alert-type' => 'error'
+    ]);
+  }
+
+  if (empty($purchaseInfo->dfo_comment) && empty($purchaseInfo->acf_comment) && empty($purchaseInfo->range_comment)) {
+    $purchaseInfo->update([
+        'disapprove_status' => 0
+    ]);
+  }  else{
+    return back()->with([
+      'error' => __('admin.common.error_eligible_msg'),
+      'alert-type' => 'error'
+    ]);
+  }
+
+
+  return redirect()->back();
+  }
+
 
   public function store(Request $request)
   {

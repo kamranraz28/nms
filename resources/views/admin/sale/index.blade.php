@@ -112,14 +112,11 @@
                     {{-- <th>#</th> --}}
                     <th>{{__('admin.sale.action')}}</th>
                     <th>{{__('admin.sale.code')}}</th>
+                    <th>{{__('admin.purchase.approval_fault')}}</th>
                     <th>{{__('admin.purchase.approval_status')}}</th>
                     <th>{{__('admin.sale.stock_type')}}</th>
                     <th>{{__('admin.sale.forest_beat')}}</th>
                     <th>{{__('admin.sale.vch_date')}}</th>
-                    <th>{{__('admin.sale.total')}}</th>
-                    <!-- <th>{{__('admin.sale.discount_amount')}}</th> -->
-                    <!-- <th>{{__('admin.sale.total_amount')}}</th>
-                    {{-- <th>{{__('admin.sale.free')}}</th> --}} -->
                     <th>{{__('admin.sale.approved')}}</th>
                     <th>{{__('admin.sale.approved_by')}}</th>
                     
@@ -127,7 +124,7 @@
                   </thead>
                   <tbody>
                   @foreach ($sales as $key => $sale)
-                  <tr>
+                  <tr style="{{ ($sale->disapprove_status == 1) ? 'background-color: orange;' : '' }}">
                     {{-- <td>{{(app()->getLocale() == 'en') ? $key+1 : NumberToBanglaWord::engToBn($key+1)}}</td> --}}
                     
                     <td>
@@ -136,23 +133,38 @@
                       @endcan --}}
 
                       @can('update', app('App\Models\Sale'))
-                        <a href="{{ route('admin.sale.edit', $sale->id) }}" class="btn btn-xs btn-primary"><i class="fas fa-edit"></i></a>
+                        <a href="{{ route('admin.sale.edit', $sale->id) }}" class="btn btn-xs btn-primary"><i class="fas fa-edit" title="Click to edit"></i></a>
                       @endcan
                       
                       @can('delete', app('App\Models\Sale'))
-                      <a href="{{ route('admin.sale.delete', $sale->id) }}" href1="{{ route('admin.sale.delete', [$sale->id,1]) }}" class="btn btn-xs btn-danger delete"><i class="fas fa-trash-alt"></i></a>
+                      <a href="{{ route('admin.sale.delete', $sale->id) }}" href1="{{ route('admin.sale.delete', [$sale->id,1]) }}" class="btn btn-xs btn-danger delete" title="Click to delete"><i class="fas fa-trash-alt"></i></a>
                       @endcan
                       
                       @can('view', app('App\Models\Sale'))
-                      <a href="{{ route('admin.sale.view', $sale->id) }}" href1="{{ route('admin.sale.view', [$sale->id]) }}" class="btn btn-xs btn-primary"><i class="fas fa-eye"></i></a>
+                      <a href="{{ route('admin.sale.view', $sale->id) }}" href1="{{ route('admin.sale.view', [$sale->id]) }}" class="btn btn-xs btn-primary" title="Click to view"><i class="fas fa-eye"></i></a>
                       @endcan
                       
                       @can('print', app('App\Models\Sale'))
-                      <a target="_blank" href="{{ route('admin.sale.print', $sale->id) }}" class="btn btn-xs btn-secondary"><i class="fas fa-print"></i></a>
+                      <a target="_blank" href="{{ route('admin.sale.print', $sale->id) }}" class="btn btn-xs btn-secondary" title="Click to print"><i class="fas fa-print"></i></a>
                       @endcan
                     </td>
                     
                     <td>{{(app()->getLocale() == 'en') ? $sale->code : NumberToBanglaWord::engToBn($sale->code)}}</td>
+                    <td style="text-align:center; vertical-align: middle;">
+                      @if($sale->disapprove_status == 0)
+                          <a class="disapprove" data-id="{{ $sale->id }}" href="{{ route('admin.sale.disapproval', $sale->id) }}">
+                              <i class="fas fa-check text-success fa-2x"></i>
+                          </a>
+                      @else
+                          <a class="disapprove_change" data-id="{{ $sale->id }}" href="{{ route('admin.sale.disapproval_change', $sale->id) }}">
+                              <i class="fas fa-times text-danger fa-2x"></i>
+                          </a>
+                          <br>
+                          <span class="reason btn btn-xs btn-primary" data-id="{{ $sale->id }}" data-range_comment="{{ $sale->range_comment }}" data-acf_comment="{{ $sale->acf_comment }}" data-dfo_comment="{{ $sale->dfo_comment }}">
+                              <i class="fas fa-eye fa-x"></i>
+                          </span>
+                      @endif
+                  </td>
                     <td>
                       
                       @if($sale->app_status == 1)
@@ -204,11 +216,9 @@
                     
                     
                     <td>{{ $sale->stockType->{'title_'. app()->getLocale()} }}</td>
-                    <td>{{ @$sale->forestBeat->{'title_'. app()->getLocale()} }} -- {{(app()->getLocale() == 'en') ? @$sale->forestBeat->bbs_code : NumberToBanglaWord::engToBn(@$sale->forestBeat->bbs_code)}}</td>
+                    <td>{{ @$sale->forestBeat->{'title_'. app()->getLocale()} }}</td>
                     <td>{{(app()->getLocale() == 'en') ? date('d-m-Y', strtotime(@$sale->vch_date)) : EnglishToBanglaDate::dateFormatEnglishToBangla(date('d-m-Y', strtotime(@$sale->vch_date)))}}</td>
-                    <td>{{getCurrency($sale->total) }}</td>
-                    <!-- <td>{{getCurrency($sale->discount_amount) }}</td> -->
-                    <!-- <td>{{getCurrency($sale->total_amount) }}</td>
+                    
                     {{-- <td>{{(app()->getLocale() == 'en') ? App\Models\Status::EN1[$sale->free] : App\Models\Status::BN1[$sale->free]}}</td> --}} -->
                     <td style="color: {{($sale->approved) ? 'green':'red'}}" >{{(app()->getLocale() == 'en') ? App\Models\Status::EN1[$sale->approved] : App\Models\Status::BN1[$sale->approved]}}</td>
                     <td>{{ @$sale->approvedBy->{'title_'. app()->getLocale()} }}</td>
@@ -248,6 +258,143 @@
 
 @section('scripts')
 
+<script>
+
+    $(document).on('click', '.disapprove', function (e) {
+        e.preventDefault();
+
+        var clickedElement = $(this);
+        var idValue = clickedElement.data('id');
+
+        @php
+          $user = Auth::user();
+          $roleId = $user ? $user->role_id : null;
+        @endphp
+
+        if ({{ in_array($roleId, [9, 7, 8]) ? 'true' : 'false' }}) {
+            
+            Swal.fire({
+              title: '{{ __('admin.purchase.disapprove_reason') }}',
+
+                html:
+                    '<form id="myForm" action="/saleStore" method="post" >' +
+                    '   @csrf' +
+                    '   <div class="form-group">' +
+                    '       <label for="inputValue">{{ __('admin.purchase.write_reason') }}</label>' +
+                    '       <input type="text" class="form-control" id="inputValue" name="inputValue" placeholder="{{ __('admin.purchase.write_reason') }}">' +
+                    '       <input type="hidden" id="inputId" name="inputId" value="' + idValue + '">' +
+                    '   </div>' +
+                    '   <button type="submit" class="btn btn-primary">{{ __('admin.purchase.submit') }}</button>' +
+                    '</form>',
+                showCancelButton: true,
+                cancelButtonText: '{{ __('admin.purchase.cancel') }}',
+                showConfirmButton: false,
+                focusConfirm: false,
+            });
+        } else {
+           
+           var message = '{{ __('admin.common.error_eligible_msg') }}';
+           Swal.fire({
+               text: message,
+               icon: 'info',
+               confirmButtonText: '{{ __('admin.purchase.cancel') }}',
+           });
+       }
+    });
+</script>
+
+<script>
+
+    $(document).on('click', '.disapprove_change', function (e) {
+        e.preventDefault();
+
+        var clickedElement = $(this);
+        var idValue = clickedElement.data('id');
+
+        @php
+          $user = Auth::user();
+          $roleId = $user ? $user->role_id : null;
+        @endphp
+
+        if ({{ in_array($roleId, [9, 7, 8]) ? 'true' : 'false' }}) {
+            
+            Swal.fire({
+              title: '{{ __('admin.purchase.change_position') }}',
+                html:
+                    '<form id="myForm" action="/saleStore_change" method="post" >' +
+                    '   @csrf' +
+                    '   <div class="form-group">' +
+    
+                    '       <input type="hidden" id="inputId" name="inputId" value="' + idValue + '">' +
+                    '   </div>' +
+                    '   <button type="submit" class="btn btn-primary">{{__('admin.common.approve1')}}</button>' +
+                    '</form>',
+                showCancelButton: true,
+                cancelButtonText: '{{ __('admin.purchase.cancel') }}',
+                showConfirmButton: false,
+                focusConfirm: false,
+            });
+        } else {
+           
+          var message = '{{ __('admin.common.error_eligible_msg') }}';
+            Swal.fire({
+                text: message,
+                icon: 'info',
+                confirmButtonText: '{{ __('admin.purchase.cancel') }}',
+            });
+        }
+    });
+</script>
+
+
+<script>
+    $(document).on('click', '.reason', function (e) {
+    e.preventDefault();
+
+    var clickedElement = $(this);
+    var rangeComment = clickedElement.data('range_comment');
+    var acfComment = clickedElement.data('acf_comment');
+    var dfoComment = clickedElement.data('dfo_comment');
+    
+    Swal.fire({
+        title: '',
+        html:
+            '<form id="myForm" action="/saleStore_change" method="post" >' +
+            '   @csrf' +
+            (dfoComment ? 
+                '   <div class="form-group">' +
+                '       <label for="dfoComment">{{__('admin.purchase.dfo')}}</label><br>' +
+                '       <span style="height: 100px; width: 300px; display: inline-block; border: none;">' + dfoComment + '</span>' +
+                '   </div>' 
+                : ''
+            ) +
+            
+            (acfComment ? 
+                '   <div class="form-group">' +
+                '       <label for="acfComment">{{__('admin.purchase.acf')}}</label><br>' +
+                '       <span style="height: 100px; width: 300px; display: inline-block; border: none;">' + acfComment + '</span>' +
+                '   </div>' 
+                : ''
+            ) +
+
+            (rangeComment ? 
+                '   <div class="form-group">' +
+                '       <label for="rangeComment">{{__('admin.purchase.range')}}</label><br>' +
+                '       <span style="height: 100px; width: 300px; display: inline-block; border: none;">' + rangeComment + '</span>' +
+                '   </div>' 
+                : ''
+            ) +
+            
+            '</form>',
+        showCancelButton: true,
+        cancelButtonText: '{{ __('admin.purchase.cancel') }}',
+        showConfirmButton: false,
+        focusConfirm: false,
+    });
+});
+</script>
+
+
 <script src="{{asset('assets/plugins/sweetalert2/sweetalert2.js')}}"></script>
 <script src="{{ asset('assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
 <script src="{{ asset('assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
@@ -262,7 +409,6 @@
 <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.html5.min.js') }}"></script>
 <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.print.min.js') }}"></script>
 <script src="{{ asset('assets/plugins/datatables-buttons/js/buttons.colVis.min.js') }}"></script>
-
 
 <script>
   $(function () {

@@ -5,7 +5,6 @@ use App\Models\Sale;
 use App\Models\Admin;
 use App\Models\State;
 use App\Models\Nursery;
-
 use App\Models\Product;
 use App\Models\Upazila;
 use App\Models\Category;
@@ -23,6 +22,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 
+
+use DOMPDF;
+use MPDF;
+
 class ReportOneController extends Controller
 {
   const VIEW_PATH = 'admin.report_one.';
@@ -33,10 +36,18 @@ class ReportOneController extends Controller
 
   public function index(Request $request)
   {
+
+    $previousState = null;
+    $previousDivision = null;
+    $previousRange = null;
+    $previousBeat = null;
+    $previousCategory = null;
+    $previousProduct = null;
     $this->authorize('read',ReportOne::class);
 
     //Session::forget(['from_date','to_date']);
     $report_ones = [];
+    $footer_report_ones = [];
     $parameters = [];
     @$from_date = Session::get('from_date');
     @$to_date = Session::get('to_date');
@@ -45,6 +56,7 @@ class ReportOneController extends Controller
     @$forest_range_id = Session::get('forest_range_id');
     @$forest_beat_id = Session::get('forest_beat_id');
     @$category_id = Session::get('category_id');
+    @$plant_id = Session::get('plant_id');
     if ($from_date && $to_date) {
       $parameters['from_date'] = $from_date;
       $parameters['to_date'] = $to_date;
@@ -53,8 +65,9 @@ class ReportOneController extends Controller
       $parameters['forest_range_id'] = $forest_range_id;
       $parameters['forest_beat_id'] = $forest_beat_id;
       $parameters['category_id'] = $category_id;
+      $parameters['plant_id'] = $plant_id;
 
-      //dd($parameters);
+      // dd($parameters);
 
       if ($forest_division_id == 'all') {
         $forest_beats = ForestBeat::lwd()->with('division','district','upazila','forestState','forestDivision','forestRange')->get();
@@ -78,7 +91,30 @@ class ReportOneController extends Controller
       foreach ($forest_beats as $key => $forest_beat) {
         $forest_beat_id = $forest_beat->id;
         //dd($forest_beat_id);
+
         if ($category_id == 'all') {
+          $query = DB::table('products as t1')
+                ->select('t1.id','t1.title_en','t1.title_bn','t3.title_en as category_en', 't3.title_bn as category_bn',
+
+                DB::raw("(SELECT(CASE WHEN SUM(t2.quantity) IS NULL THEN 0 ELSE SUM(t2.quantity) END) FROM purchase_details as t2 
+                WHERE t2.product_id = t1.id and t2.approved = 1 and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}')  as stock_in"),
+
+                DB::raw("(SELECT(CASE WHEN SUM(t2.quantity) IS NULL THEN 0 ELSE SUM(t2.quantity) END) FROM sale_details as t2 
+                WHERE t2.approved = 1 and t2.product_id = t1.id and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}' )  as stock_out"),
+
+                DB::raw("(SELECT(CASE WHEN SUM(t2.total) IS NULL THEN 0 ELSE SUM(t2.total) END) FROM sale_details as t2 
+                WHERE t2.approved = 1 and t2.product_id = t1.id and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}' )  as total"),
+
+                DB::raw("((SELECT(CASE WHEN SUM(t2.quantity) IS NULL THEN 0 ELSE SUM(t2.quantity) END) FROM purchase_details as t2 
+                WHERE t2.product_id = t1.id and t2.approved = 1 and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}' ) - 
+                (SELECT(CASE WHEN SUM(t2.quantity) IS NULL THEN 0 ELSE SUM(t2.quantity) END) FROM sale_details as t2 
+                WHERE t2.approved = 1 and t2.product_id = t1.id and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}' ))  as stock"))
+        
+                ->join('categories as t3', 't1.category_id', '=', 't3.id')
+                ->get();
+        } else {
+          
+        if ($plant_id == 'all') {
           $query = DB::table('products as t1')
                 ->select('t1.id','t1.title_en','t1.title_bn','t3.title_en as category_en', 't3.title_bn as category_bn',
 
@@ -117,9 +153,10 @@ class ReportOneController extends Controller
                 WHERE t2.approved = 1 and t2.product_id = t1.id and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}' ))  as stock"))
         
                 ->join('categories as t3', 't1.category_id', '=', 't3.id')
-                ->where('t1.category_id',$category_id)
+                ->where('t1.id',$plant_id)
                 ->get();
         }
+      }
 
        
         
@@ -148,7 +185,7 @@ class ReportOneController extends Controller
         }
       }
 
-      //dd($report_ones);
+      // dd($report_ones);
     }
 
     $states = State::get();
@@ -157,6 +194,9 @@ class ReportOneController extends Controller
     //$upazilas = Upazila::get();
 
     $categories = Category::where('last',1)->get();
+
+    Session::put(['report_ones'=>$report_ones, 'footer_report_ones'=>$footer_report_ones, 'parameters'=>$parameters]);
+    Session::put(['dreport_ones'=>$report_ones, 'dfooter_report_ones'=>$footer_report_ones, 'dparameters'=>$parameters]);
 
     // $forest_states = ForestState::get();
     // $forest_divisions = ForestDivision::get();
@@ -207,7 +247,7 @@ class ReportOneController extends Controller
 
 
 
-    return view(self::VIEW_PATH . 'index',compact('report_ones','parameters','divisions','categories','states','forest_states','forest_divisions','forest_ranges','forest_beats'));
+    return view(self::VIEW_PATH . 'index',compact('report_ones','previousState','previousDivision','previousProduct','previousRange','previousBeat','previousCategory','parameters','divisions','categories','states','forest_states','forest_divisions','forest_ranges','forest_beats'));
   }
 
   public function store(Request $request)
@@ -221,10 +261,10 @@ class ReportOneController extends Controller
     ]);
     
     //return $request->all();
-    Session::forget(['from_date','to_date','forest_state_id','forest_division_id','forest_range_id','forest_beat_id','category_id']);
+    Session::forget(['from_date','to_date','forest_state_id','forest_division_id','forest_range_id','forest_beat_id','category_id','plant_id']);
     Session::put(['from_date'=>$request->from_date,'to_date'=>$request->to_date, 'forest_state_id'=>$request->forest_state_id, 
     'forest_division_id'=>$request->forest_division_id, 'forest_range_id'=>$request->forest_range_id, 'forest_beat_id'=>$request->forest_beat_id,
-    'category_id'=>$request->category_id]);
+    'category_id'=>$request->category_id, 'plant_id'=>$request->plant_id]);
     //dd(Session::all());
 
     return redirect()->route('admin.report_one');
@@ -238,6 +278,36 @@ class ReportOneController extends Controller
     return view(self::VIEW_PATH . 'print', compact('report_one'));
   }
 
+  public function download()
+  {
+    $previousDistrict= null;
+    $previousUpazila= null;
+    $previousBeat= null;
+    $previousState = null;
+    $previousDivision = null;
+    $previousRange = null;
+    $previousCategory = null;
+    $previousProduct = null;
 
+    $this->authorize('print',App\ReportOne::class);
 
+    $report_nines = [];
+    $footer_report_nines = [];
+    $forest_district_data = [];
+    @$report_ones = Session::get('dreport_ones');
+    @$footer_report_ones = Session::get('dfooter_report_ones');
+    @$parameters = Session::get('dparameters');
+    $categories = Category::where('last',1)->get();
+
+    // dd(Session::get('dreport_ones'));
+    if (Session::get('dreport_ones')) {
+
+      $pdf = MPDF::loadView(self::VIEW_PATH . 'download',compact('previousProduct','previousCategory','previousRange','previousDivision','previousState','report_ones','previousDistrict','previousBeat','previousUpazila','footer_report_ones','forest_district_data','parameters','categories')); 
+      return $pdf->download(__('admin.report_one.view') . '.pdf');
+    }else{
+      return redirect()->route('admin.report_one');
+    }
+    
+  }
+  
 }

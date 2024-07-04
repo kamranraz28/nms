@@ -90,20 +90,36 @@ class RangeOffice extends Model
     // }
 
     
-    public function scopeLwd($query) {
-
-        $authUser = Auth::guard('admin')->user()->load(['userType']);
-        
-        if($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[5]){
-            return $query->where('forest_range_id',$authUser->forest_range_id);
-        } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[4]){
-            return $query->where('forest_division_id',$authUser->forest_division_id);
-        } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[3]){
-            return $query->where('forest_state_id',$authUser->forest_state_id); // New
-        } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[2]){
-            return $query;
-        } else{
-            return $query;
+ public function scopeLwd($query) {
+        if (auth()->guard('admin')->check()) {
+            $authUser = auth()->guard('admin')->user();
+            
+            if ($authUser) {
+                // Check if the user has the 'userType' relationship
+                $authUser->load(['userType']);
+                
+                if ($authUser->userType) {
+                    if ($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[6]){
+                        return $query->where('forest_beat_id', $authUser->forest_beat_id);
+                    } elseif ($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[5]){
+                        return $query->where('forest_range_id', $authUser->forest_range_id);
+                    } elseif ($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[4]){
+                        return $query->where('forest_division_id', $authUser->forest_division_id);
+                    } elseif ($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[3]){
+                        return $query->where('forest_state_id', $authUser->forest_state_id); // New
+                    } elseif ($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[2]){
+                        return $query;
+                    } else {
+                        return $query;
+                    }
+                } else {
+                    // Handle the case where 'userType' is not loaded
+                }
+            } else {
+                // Handle the case where 'auth()->guard('admin')->user()' is null
+            }
+        } else {
+            // Handle the case where the user is not authenticated
         }
     }
 

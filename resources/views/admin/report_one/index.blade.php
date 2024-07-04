@@ -157,17 +157,14 @@
                 </div>
               </div>
 
-              {{-- <div class="col-md-4">
+              <div class="col-md-4">
                 <div class="form-group">
                   <label for="nursery_id">{{ __('admin.report_one.nursery') }} <!--<span style="color: red"> * </span>--></label>
                   <select class="form-control select2" name="nursery_id" id="nursery_id">
                     <option value="all">{{ __('admin.common.all') }}</option>
                   </select>
                 </div>
-              </div> --}}
-
-
-
+              </div>
 
               <div class="col-md-4">
                 <div class="form-group">
@@ -177,6 +174,15 @@
                     @foreach ($categories as $key => $item)
                       <option value="{{ $item->id }}" {{(@$parameters['category_id'] == $item->id) ? 'selected' : ''}} >{{ $item->{'title_'. app()->getLocale()} }}</option>
                     @endforeach
+                  </select>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label for="plant_id">{{ __('admin.report_one.plant_name') }} <!--<span style="color: red"> * </span>--></label>
+                  <select class="form-control select2" name="plant_id" id="plant_id">
+                    <option value="all">{{ __('admin.common.all') }}</option>
                   </select>
                 </div>
               </div>
@@ -192,6 +198,7 @@
                 </div>
               </div>
 
+              
               <div class="col-md-4">
                 <div class="form-group">
                   <label for="to_date">{{ __('admin.report_one.to_date') }}</label>
@@ -227,7 +234,21 @@
                     </div>
                   @endif
                 @endcan
-                
+
+                @can('print', app('App\Models\ReportOne'))
+                  @if (count($report_ones)>0)
+                  <div class="col-12">
+                    <a target="_blank" style="float: right" href="{{route('admin.report_one.download')}}" rel="noopener" target="_blank" class="btn btn-default"><i class="fas fa-download"></i> 
+                        {{(app()->getLocale() == 'en') ? 'Download' : 'ডাউনলোড করুন'}}
+                      </a>
+                    </div>
+                  @endif
+                @endcan
+                    
+                  
+
+
+               
               </div>
             </div>
             
@@ -253,6 +274,17 @@
                     <table class="table table-striped" id="example1">
                       <thead>
                       <tr>
+                          <th style="text-align: center;" colspan="{{(count($categories) + count($categories) + count($categories)) + 3 + 3}}"> 
+                            <br>
+                            {!! __('admin.report_two.title') !!}
+                            <br>
+                           <br>
+                           <br>
+                            
+                          </th>
+                        </tr>
+                        
+                      <tr>
                         <th colspan="1" style="min-width: 150px;">{{__('admin.report_one.from_date')}} : </th>
                         <th colspan="3">{{(app()->getLocale() == 'en') ? date('d-m-Y', strtotime($parameters['from_date'])) : EnglishToBanglaDate::dateFormatEnglishToBangla(date('d-m-Y', strtotime($parameters['from_date']))) }}
                         
@@ -271,18 +303,66 @@
                       </tr>
                       </thead>
                       <tbody>
+                        @php
+                          usort($report_ones, function($a, $b) {
+                          return strcmp($a['forest_state_'. app()->getLocale()], $b['forest_state_'. app()->getLocale()]);
+                          });
+                        @endphp
+                        
                       @foreach ($report_ones as $key => $item)
                       <tr>
-                        <td>{{ $item['forest_state_'. app()->getLocale()] }}</td>
-                        <td>{{ $item['forest_division_'. app()->getLocale()] }}</td>
-                        <td>{{ $item['forest_range_'. app()->getLocale()] }}</td>
-                        <td>{{ $item['forest_beat_'. app()->getLocale()] }}</td>
-                        <td>{{ $item['category_'. app()->getLocale()] }}</td>
-                        <td>{{ $item['product_'. app()->getLocale()] }}</td>
+                        <td>
+                          @if ($previousState && $item['forest_state_'. app()->getLocale()] === $previousState)
+            	            @else
+                            {{ $item['forest_state_'. app()->getLocale()] }}
+                          @endif
+                        </td>
+            
+                        <td>
+                          @if ($previousDivision && $item['forest_division_'. app()->getLocale()] === $previousDivision)
+            	            @else
+                            {{ $item['forest_division_'. app()->getLocale()] }}
+                          @endif
+                        </td>
+                  
+                        <td>
+                          @if ($previousRange && $item['forest_range_'. app()->getLocale()] === $previousRange)
+            	            @else
+                            {{ $item['forest_range_'. app()->getLocale()] }}
+                          @endif
+                        </td>
+
+                        <td>
+                          @if ($previousBeat && $item['forest_beat_'. app()->getLocale()] === $previousBeat)
+            	            @else
+                            {{ $item['forest_beat_'. app()->getLocale()] }}
+                          @endif
+                        </td>
+            
+                        <td>
+                          @if ($previousCategory && $item['category_'. app()->getLocale()] === $previousCategory)
+            	            @else
+                            {{ $item['category_'. app()->getLocale()] }}
+                          @endif
+                        </td>
+                        
+                        <td>
+                          @if ($previousProduct && $item['product_'. app()->getLocale()] === $previousProduct)
+            	            @else
+                            {{ $item['product_'. app()->getLocale()] }}
+                          @endif
+                        </td>
                         <td>{{(app()->getLocale() == 'en') ? $item['stock_in'] : NumberToBanglaWord::engToBn($item['stock_in'])}}</td>
                       </tr>
+                      @php
+                        $previousState = $item['forest_state_' . app()->getLocale()]; //Current State storing for comparison
+                        $previousDivision = $item['forest_division_' . app()->getLocale()];
+                        $previousRange = $item['forest_range_' . app()->getLocale()];
+                        $previousBeat = $item['forest_beat_' . app()->getLocale()];
+                        $previousCategory = $item['category_' . app()->getLocale()];
+                        $previousProduct = $item['product_' . app()->getLocale()];
+                      @endphp
                       @endforeach
-                      
                       </tbody>
                     </table>
                   </div>
@@ -401,7 +481,22 @@
 </script>
 
 <script>
-      
+
+     $('#category_id').on('change', function(e){
+        var category_id = e.target.value;
+        var route = "{{route('get.plant')}}/"+category_id;
+        //console.log(category_id);
+        $.get(route, function(data) {
+          //console.log(data);
+          $('#plant_id').empty();
+          $('#plant_id').append('<option value="">{{ __('admin.common.select') }}</option>');
+          $.each(data, function(index,data){
+            $('#plant_id').append('<option value="' + data.id + '">' + data.title_{{app()->getLocale()}} +  '</option>');
+          });
+        });
+      });
+
+
       $('#forest_state_id').on('change', function(e){
         var forest_state_id = e.target.value;
         var route = "{{route('get.forest_division')}}/"+forest_state_id;
@@ -415,7 +510,10 @@
           });
         });
       });
+
       
+
+    
       $('#forest_division_id').on('change', function(e){
         var forest_division_id = e.target.value;
         var route = "{{route('get.forest_range')}}/"+forest_division_id;
@@ -462,7 +560,7 @@
 </script>
 
 @php
-  Session::forget(['from_date','to_date','forest_state_id','forest_division_id','forest_range_id','forest_beat_id','category_id']);
+  Session::forget(['from_date','to_date','forest_state_id','forest_division_id','forest_range_id','forest_beat_id','category_id','plant_id']);
 @endphp
 @endsection
 

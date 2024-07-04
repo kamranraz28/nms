@@ -5,7 +5,6 @@ use App\Models\Sale;
 use App\Models\Admin;
 use App\Models\State;
 use App\Models\Budget;
-
 use App\Models\Nursery;
 use App\Models\Product;
 use App\Models\Upazila;
@@ -26,6 +25,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 
+use DOMPDF;
+use MPDF;
+
 class ReportSevenController extends Controller
 {
   const VIEW_PATH = 'admin.report_seven.';
@@ -36,12 +38,18 @@ class ReportSevenController extends Controller
 
   public function index(Request $request)
   {
+    $previousDistrict= null;
+    $previousUpazila= null;
+    $previousBeat= null;
+    $categories = Category::get();
+    // dd($categories);
     $this->authorize('read',ReportSeven::class);
     
     //Session::forget(['from_date','to_date','from_date_pre','to_date_pre','forest_division_id','budget_id','stock_type_id','forest_range_id','financial_year']);
     
     $report_sevens = [];
     $forest_district_data = [];
+    $footer_report_sevens = [];
     $parameters = [];
     @$budget_id = Session::get('budget_id');
     @$from_date = Session::get('from_date');
@@ -113,6 +121,8 @@ class ReportSevenController extends Controller
         $current_total_stock_in_arr = [];
         $current_total_stock_out_arr = [];
         $current_total_stock_arr = [];
+
+        
       // for forest district
       
 
@@ -353,6 +363,9 @@ class ReportSevenController extends Controller
 
       
     }
+    Session::put(['report_sevens'=>$report_sevens, 'footer_report_sevens'=>$footer_report_sevens, 'parameters'=>$parameters]);
+    Session::put(['dreport_sevens'=>$report_sevens, 'dfooter_report_sevens'=>$footer_report_sevens, 'dparameters'=>$parameters]);
+
 
     $authUser = Auth::guard('admin')->user()->load(['userType']);
     if ($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[6]){
@@ -394,7 +407,7 @@ class ReportSevenController extends Controller
     $financial_years = FinancialYear::get();
     $stock_types = StockType::get();
 
-    return view(self::VIEW_PATH . 'index',compact('report_sevens','parameters','forest_divisions','forest_ranges','forest_beats','budgets','forest_district_data','financial_years','stock_types'));
+    return view(self::VIEW_PATH . 'index',compact('categories','previousDistrict','previousUpazila','previousBeat','report_sevens','parameters','forest_divisions','forest_ranges','forest_beats','budgets','forest_district_data','financial_years','stock_types'));
   }
 
   public function store(Request $request)
@@ -420,10 +433,10 @@ class ReportSevenController extends Controller
     $from_date_pre = date("Y-m-d",strtotime($from . "-1 years"));
     $to_date_pre = date("Y-m-d",strtotime($to . "-1 years"));
 
-    Session::forget(['from_date','to_date','from_date_pre','to_date_pre','forest_division_id','budget_id','stock_type_id','forest_beat_id','financial_year']);
+    Session::forget(['from_date','to_date','from_date_pre','to_date_pre','forest_division_id','budget_id','stock_type_id','forest_beat_id','financial_year','category_id']);
     Session::put(['from_date'=>$from_date,'to_date'=>$to_date, 'from_date_pre'=>$from_date_pre,'to_date_pre'=>$to_date_pre, 
     'forest_division_id'=>$request->forest_division_id,'budget_id'=>$request->budget_id,'stock_type_id'=>$request->stock_type_id,
-    'forest_beat_id'=>$request->forest_beat_id,'financial_year_id'=>$request->financial_year_id]);
+    'forest_beat_id'=>$request->forest_beat_id,'financial_year_id'=>$request->financial_year_id,  'category_id'=>$request->category_id]);
     //dd(Session::all());
 
     return redirect()->route('admin.report_seven');
@@ -435,6 +448,42 @@ class ReportSevenController extends Controller
     $this->authorize('print',App\ReportSeven::class);
     
     return view(self::VIEW_PATH . 'print', compact('report_seven'));
+  }
+
+  public function download()
+  {
+    $previousDistrict= null;
+    $previousUpazila= null;
+    $previousBeat= null;
+    $previousState= null;
+    $previousDivision= null;
+    $previousRange = null;
+    $previousBeat = null;
+    $previousCategory = null;
+    $previousProduct = null;
+  
+    $this->authorize('print',App\ReportSeven::class);
+
+    $report_sevens = [];
+    $footer_report_sevens = [];
+    $forest_district_data = [];
+    @$report_sevens = Session::get('dreport_sevens');
+    @$footer_report_sevens = Session::get('dfooter_report_sevens');
+    @$parameters = Session::get('dparameters');
+    $categories = Category::where('last',1)->get();
+    //return $report_sevens;
+
+    // dd(Session::get('dreport_sevens'));
+
+
+    if (Session::get('dreport_sevens')) {
+
+      $pdf = MPDF::loadView(self::VIEW_PATH . 'download', compact('previousProduct','previousCategory','previousBeat','previousRange','previousDivision','previousState','report_sevens','previousDistrict','previousBeat','previousUpazila','parameters','categories','footer_report_sevens','forest_district_data'));
+      
+      return $pdf->download(__('admin.report_seven.view') .'.pdf');
+    }else{
+      return redirect()->route('admin.report_seven');
+    }
   }
 
 

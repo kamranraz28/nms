@@ -163,6 +163,8 @@ return [
         Illuminate\View\ViewServiceProvider::class,
         App\Providers\PermissionsServiceProvider::class,
         Maatwebsite\Excel\ExcelServiceProvider::class,
+        Tymon\JWTAuth\Providers\LaravelServiceProvider::class,
+        
         
 
         /*
@@ -179,8 +181,8 @@ return [
         App\Providers\RouteServiceProvider::class,
         App\Providers\TestServiceProvider::class,
         Rakibhstu\Banglanumber\NumberToBanglaServiceProvider::class,
-        Barryvdh\DomPDF\ServiceProvider::class,
-        Meneses\LaravelMpdf\LaravelMpdfServiceProvider::class,
+       Barryvdh\DomPDF\ServiceProvider::class,
+       Mccarlosen\LaravelMpdf\LaravelMpdfServiceProvider::class,
 
     ],
 
@@ -237,7 +239,7 @@ return [
         'View' => Illuminate\Support\Facades\View::class,
         'Excel' => Maatwebsite\Excel\Facades\Excel::class,
         'DOMPDF' => Barryvdh\DomPDF\Facade::class,
-        'MPDF' => Meneses\LaravelMpdf\Facades\LaravelMpdf::class,
+        'MPDF' => Mccarlosen\LaravelMpdf\Facades\LaravelMpdf::class,
 
     ],
 

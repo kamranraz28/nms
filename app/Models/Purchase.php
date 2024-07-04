@@ -66,6 +66,18 @@ class Purchase extends Model
         return $this->belongsTo(Admin::class,'approved_by');
     }
 
+    public function range_comment() {
+        return $this->belongsTo(Admin::class,'range_comment');
+    }
+
+    public function acf_comment() {
+        return $this->belongsTo(Admin::class,'acf_comment');
+    }
+
+    public function dfo_comment() {
+        return $this->belongsTo(Admin::class,'dfo_comment');
+    }
+
     public function state() {
         return $this->belongsTo(State::class,'state_id');
     }
@@ -105,7 +117,9 @@ class Purchase extends Model
 
     public function scopeLwd($query) {
 
-        $authUser = Auth::guard('admin')->user()->load(['userType']);
+        $authUser = Auth::guard('admin')->user();
+        if(!$authUser) $authUser = Auth::guard('api')->user();
+        $authUser = $authUser->load(['userType']);
         
         if($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[6]){
             return $query->where('forest_beat_id',$authUser->forest_beat_id);

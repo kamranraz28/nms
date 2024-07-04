@@ -26,6 +26,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 
+use DOMPDF;
+use MPDF;
+
 class ReportEightController extends Controller
 {
   const VIEW_PATH = 'admin.report_eight.';
@@ -36,18 +39,23 @@ class ReportEightController extends Controller
 
   public function index(Request $request)
   {
+    $previousDistrict = null;
+    $previousUpazila = null;
+    $previousBeat = null;
     $this->authorize('read',ReportEight::class);
     
     //Session::forget(['from_date','to_date','from_date_pre','to_date_pre','forest_division_id','budget_id','stock_type_id','forest_range_id','financial_year']);
     
     $report_eights = [];
     $forest_district_data = [];
+    $footer_report_eights = [];
     $parameters = [];
     @$budget_id = Session::get('budget_id');
     @$from_date = Session::get('from_date');
     @$to_date = Session::get('to_date');
-    @$from_date_pre = Session::get('from_date_pre');
-    @$to_date_pre = Session::get('to_date_pre');
+   @$from_date_pre = Session::get('from_date_pre');
+ @$to_date_pre = Session::get('to_date_pre');
+ 
     @$forest_division_id = Session::get('forest_division_id');
     @$stock_type_id = Session::get('stock_type_id');
     @$financial_year_id = Session::get('financial_year_id');
@@ -73,7 +81,9 @@ class ReportEightController extends Controller
       $parameters['forest_division_en'] = $forest_division->title_en;
       $parameters['forest_division_bn'] = $forest_division->title_bn;
 
-      $parameters['from_date_pre_view'] = date("M/Y",strtotime($to_date_pre . "-1 days"));
+    $parameters['from_date_pre_view'] = date("M/Y",strtotime($to_date_pre . "-1 days"));
+      
+
       $parameters['budget_year_view'] = date("Y",strtotime($from_date)) . '-' . date("Y",strtotime($from_date . "1 years"));
       $parameters['till_date_view'] = date("d M/Y",strtotime($to_date));
       $parameters['to_date_view'] = date("d M/Y",strtotime($to_date));
@@ -129,6 +139,7 @@ class ReportEightController extends Controller
             ->whereBetween(DB::raw("DATE_FORMAT(t1.vch_date,'%Y-%m-%d')"), [$from_date_pre, $to_date_pre])
             ->first();
           $purchaseQueryPre = json_decode(json_encode($query), True);
+          //exit();
           //purchase_pre 
           
           //sale_pre 
@@ -347,6 +358,9 @@ class ReportEightController extends Controller
       //dd($report_eights);
     }
 
+    Session::put(['report_eights'=>$report_eights, 'footer_report_eights'=>$footer_report_eights, 'parameters'=>$parameters]);
+    Session::put(['dreport_eights'=>$report_eights, 'dfooter_report_eights'=>$footer_report_eights, 'dparameters'=>$parameters]);
+
     $authUser = Auth::guard('admin')->user()->load(['userType']);
     if ($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[6]){
       $forest_division_id = $authUser->forest_division_id;
@@ -387,7 +401,7 @@ class ReportEightController extends Controller
     $financial_years = FinancialYear::get();
     $stock_types = StockType::get();
 
-    return view(self::VIEW_PATH . 'index',compact('report_eights','parameters','forest_divisions','forest_ranges','forest_beats','budgets','forest_district_data','financial_years','stock_types'));
+    return view(self::VIEW_PATH . 'index',compact('report_eights','previousDistrict','previousBeat','previousUpazila','parameters','forest_divisions','forest_ranges','forest_beats','budgets','forest_district_data','financial_years','stock_types'));
   }
 
   public function store(Request $request)
@@ -404,16 +418,20 @@ class ReportEightController extends Controller
     ]);
     
     $month = date("Y-m",strtotime($request->f_date));
-    $from = $month.'-'.'01';
-    $to_date = date("Y-m-d",strtotime($from . "1 months"));
-    $to = date("Y-m-d",strtotime($to_date . "-1 days"));
+   $from = $month.'-'.'01';
+   
+ 
+    $to_date = date("Y-m-t",strtotime($from));
+  
+   // $to = date("Y-m-d",strtotime($to_date . "-1 days"));
     
 
     $from_date = date("Y-m-d",strtotime($from));
-    $to_date = date("Y-m-d",strtotime($to));
+   // $to_date = date("Y-m-d",strtotime($to));
 
     $from_date_pre = date("Y-m-d",strtotime($from . "-1 months"));
-    $to_date_pre = date("Y-m-d",strtotime($to . "-1 months"));
+    $to_date_pre = date("Y-m-t",strtotime($from. "-1 months"));
+    //exit();
 
     Session::forget(['from_date','to_date','from_date_pre','to_date_pre','forest_division_id','budget_id','stock_type_id','forest_beat_id','financial_year']);
     Session::put(['from_date'=>$from_date,'to_date'=>$to_date, 'from_date_pre'=>$from_date_pre,'to_date_pre'=>$to_date_pre, 
@@ -430,6 +448,42 @@ class ReportEightController extends Controller
     $this->authorize('print',App\ReportEight::class);
     
     return view(self::VIEW_PATH . 'print', compact('report_eight'));
+  }
+
+  public function download()
+  {
+    $previousDistrict= null;
+    $previousUpazila= null;
+    $previousBeat= null;
+    $previousState= null;
+    $previousDivision= null;
+    $previousRange = null;
+    $previousBeat = null;
+    $previousCategory = null;
+    $previousProduct = null;
+  
+    $this->authorize('print',App\ReportEight::class);
+
+    $report_eights = [];
+    $footer_report_eights = [];
+    $forest_district_data = [];
+    @$report_eights = Session::get('dreport_eights');
+    @$footer_report_eights = Session::get('dfooter_report_eights');
+    @$parameters = Session::get('dparameters');
+    $categories = Category::where('last',1)->get();
+    //return $report_eights;
+
+    // dd(Session::get('dreport_eights'));
+
+
+    if (Session::get('dreport_eights')) {
+
+      $pdf = MPDF::loadView(self::VIEW_PATH . 'download', compact('previousProduct','previousCategory','previousBeat','previousRange','previousDivision','previousState','report_eights','previousDistrict','previousBeat','previousUpazila','parameters','categories','footer_report_eights','forest_district_data'));
+      
+      return $pdf->download(__('admin.report_eight.view') .'.pdf');
+    }else{
+      return redirect()->route('admin.report_eight');
+    }
   }
 
 

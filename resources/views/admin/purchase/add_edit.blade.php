@@ -144,27 +144,7 @@ rel="stylesheet" type="text/css" /> --}}
                  
                   <div class="row">
                     <div class="col-6">
-                      {{-- @if ($edit)
-                        <div class="form-group">
-                          <label for="nursery_id">{{ __('admin.purchase.nursery') }} <span style="color: red"> * </span></label>
-                          <select class="form-control select2" name="nursery_id" id="nursery_id" required>
-                            <option value="">{{ __('admin.common.select') }}</option>
-                            @foreach ($nurseries as $key => $item)
-                              <option value="{{ $item->id }}" {{($purchase->nursery_id == $item->id) ? 'selected' : ''}} >{{ $item->{'office_'. app()->getLocale()} }}</option>
-                            @endforeach
-                          </select>
-                        </div>    
-                      @else
-                        <div class="form-group">
-                          <label for="nursery_id">{{ __('admin.purchase.nursery') }} <span style="color: red"> * </span></label>
-                          <select class="form-control select2" name="nursery_id" id="nursery_id" required>
-                            <option value="">{{ __('admin.common.select') }}</option>
-                            @foreach ($nurseries as $key => $item)
-                              <option value="{{ $item->id }}" {{(old('nursery_id') == $item->id) ? 'selected' : ''}} >{{ $item->{'office_'. app()->getLocale()} }}</option>
-                            @endforeach
-                          </select>
-                        </div>
-                      @endif --}}
+                      
 
                       @if (Auth::guard('admin')->user()->userType->default_role <= Admin::DEFAULT_ROLE_LIST[5])
                         @if ($edit)
@@ -557,26 +537,28 @@ rel="stylesheet" type="text/css" /> --}}
       let firstDay = '';
       let lastDay = '';
       
-      @if($edit)
-      getCurrentMonth = "date_format(date_create($purchase->vch_date),'m')";
-      if (getCurrentMonth >= 6) {
-        firstDay = new Date(date.getFullYear(), 5, 1);
-        lastDay = new Date(date.getFullYear() + 1, 5, 30);
-      }else{
-      firstDay = new Date(date.getFullYear(), 5, 1);
-        lastDay = new Date(date.getFullYear() + 1, 5, 30);
-      }
-      @else
-      
-      if (getCurrentMonth >= 6) {
-        firstDay = new Date(date.getFullYear(), 5, 1);
-        lastDay = new Date(date.getFullYear() + 1, 5, 30);
-      }else{
-        firstDay = new Date(date.getFullYear(), 5, 1);
-        lastDay = new Date(date.getFullYear() + 1, 5, 30);
-      }
-      @endif
-      //console.log(firstDay + '-' + lastDay);
+//       @if($edit)
+//       getCurrentMonth = "date_format(date_create($purchase->vch_date),'m')";
+//       // getCurrentMonth = "7";
+//       if (getCurrentMonth <= 6) {
+//         firstDay = new Date(date.getFullYear(), 5, 1);
+//         lastDay = new Date(date.getFullYear() -1, 5, 30);
+//       }else{
+//       firstDay = new Date(date.getFullYear() -1, 5, 1);
+//         lastDay = new Date(date.getFullYear(), 5, 30);
+//       }
+//       @else
+//   getCurrentMonth = "7";
+//       if (getCurrentMonth <= 6) {
+//          firstDay = new Date(date.getFullYear() -1, 5, 1);
+//         lastDay = new Date(date.getFullYear(), 5, 30);
+//       }else{
+          
+//       firstDay = new Date(date.getFullYear(),  5, 1);
+//         lastDay = new Date(date.getFullYear(), 1, 5, 30);
+//       }
+//       @endif
+//      console.log(getCurrentMonth + '-' + lastDay);
       $("input[name='vch_date']").datepicker({ 
         autoclose: true, 
         todayHighlight: true,

@@ -111,12 +111,46 @@
 
                                 </thead>
                                 <tbody>
+                                @php
+                                    usort($report_nines, function($a, $b) {
+                                    return strcmp($a['district_'. app()->getLocale()], $b['district_'. app()->getLocale()]);
+                                    });
+                                @endphp
 
                                     @foreach ($report_nines as $key=>$item)
                                     <tr>
-                                    <td style="text-align: left">{{ $item['district_'. app()->getLocale()] }}</td>
-                                    <td style="text-align: left">{{ $item['upazila_'. app()->getLocale()] }}</td>
-                                    <td style="text-align: left">{{ $item['forest_beat_'. app()->getLocale()] }}</td>
+                                    <td>
+                                        @if ($previousDistrict && $item['district_'. app()->getLocale()] === $previousDistrict)
+                                            @else
+                                            {{ $item['district_'. app()->getLocale()] }}
+                                        @endif
+                                        
+                                    </td>  
+                                    @php
+                                        $previousDistrict = $item['district_' . app()->getLocale()];
+                       
+                                    @endphp
+                                    <td>
+                                        @if ($previousUpazila && $item['upazila_'. app()->getLocale()] === $previousUpazila)
+                                            @else
+                                            {{ $item['upazila_'. app()->getLocale()] }}
+                                        @endif
+                                        
+                                    </td>  
+                                    @php
+                                        $previousUpazila = $item['upazila_' . app()->getLocale()];
+                       
+                                    @endphp
+                                    <td>
+                                        @if ($previousBeat && $item['forest_beat_'. app()->getLocale()] === $previousBeat)
+            	                            @else
+                                            {{ $item['forest_beat_'. app()->getLocale()] }}
+                                        @endif
+                                    </td>
+                                    @php
+                                        $previousBeat = $item['forest_beat_' . app()->getLocale()];
+                       
+                                    @endphp
                                     
                                     @php
                                         $opening_stock_total = [];

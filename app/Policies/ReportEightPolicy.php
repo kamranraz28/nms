@@ -36,4 +36,8 @@ class ReportEightPolicy
         return $result = Role::roleHasChildPermissions($admin->role_id,'report_eight','report_eight.print');
     }
 
+    public function download(Admin $admin)
+    {
+        return $result = Role::roleHasChildPermissions($admin->role_id,'report_eight','report_eight.print');
+    }
 }

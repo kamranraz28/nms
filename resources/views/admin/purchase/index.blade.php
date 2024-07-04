@@ -110,10 +110,11 @@
                     {{-- <th>#</th> --}}
                     <th>{{__('admin.purchase.action')}}</th>
                     <th>{{__('admin.purchase.code')}}</th>
+                    <th>{{__('admin.purchase.approval_fault')}}</th>
                     <th>{{__('admin.purchase.approval_status')}}</th>
                     <th>{{__('admin.purchase.stock_type')}}</th>
                     <th>{{__('admin.purchase.forest_beat')}}</th>
-                    <th>{{__('admin.purchase.budget')}}</th>
+                    
                     <th>{{__('admin.purchase.vch_date')}}</th>
                     <th>{{__('admin.purchase.approved')}}</th>
                     <th>{{__('admin.purchase.approved_by')}}</th>
@@ -121,7 +122,7 @@
                   </thead>
                   <tbody>
                   @foreach ($purchases as $key => $purchase)
-                  <tr>
+                  <tr style="{{ ($purchase->disapprove_status == 1) ? 'background-color: orange;' : '' }}">
                     {{-- <td>{{(app()->getLocale() == 'en') ? $key+1 : NumberToBanglaWord::engToBn($key+1)}}</td> --}}
                     <td>
                       {{-- @can('approval', app('App\Models\Purchase'))
@@ -129,25 +130,46 @@
                       @endcan --}}
 
                       @can('update', app('App\Models\Purchase'))
-                        <a href="{{ route('admin.purchase.edit', $purchase->id) }}" class="btn btn-xs btn-primary"><i class="fas fa-edit"></i></a>
+                        <a href="{{ route('admin.purchase.edit', $purchase->id) }}" class="btn btn-xs btn-primary"><i class="fas fa-edit" title="Click to edit"></i></a>
                       @endcan
                       
                       @can('delete', app('App\Models\Purchase'))
-                      <a href="{{ route('admin.purchase.delete', $purchase->id) }}" href1="{{ route('admin.purchase.delete', [$purchase->id,1]) }}" class="btn btn-xs btn-danger delete"><i class="fas fa-trash-alt"></i></a>
+                      <a href="{{ route('admin.purchase.delete', $purchase->id) }}" href1="{{ route('admin.purchase.delete', [$purchase->id,1]) }}" class="btn btn-xs btn-danger delete" title="Click to delete">
+                          <i class="fas fa-trash-alt"></i>
+                      </a>                      
                       @endcan
                       
                       @can('view', app('App\Models\Purchase'))
-                      <a href="{{ route('admin.purchase.view', $purchase->id) }}" href1="{{ route('admin.purchase.view', [$purchase->id]) }}" class="btn btn-xs btn-primary"><i class="fas fa-eye"></i></a>
+                      <a href="{{ route('admin.purchase.view', $purchase->id) }}" href1="{{ route('admin.purchase.view', [$purchase->id]) }}" class="btn btn-xs btn-primary" title="Click to view"><i class="fas fa-eye"></i></a>
                       @endcan
                       
                       @can('print', app('App\Models\Purchase'))
-                      <a target="_blank" href="{{ route('admin.purchase.print', $purchase->id) }}" class="btn btn-xs btn-secondary"><i class="fas fa-print"></i></a>
+                      <a target="_blank" href="/purchase/disapproval/{{$purchase->id}}" class="btn btn-xs btn-secondary" title="Click to print"><i class="fas fa-print"></i></a>
                       @endcan
                     </td>
                     
                     
                     <td>{{(app()->getLocale() == 'en') ? $purchase->code : NumberToBanglaWord::engToBn($purchase->code)}}</td>
                     
+                    <td style="text-align:center; vertical-align: middle;">
+                      @if($purchase->disapprove_status == 0)
+                          <a class="disapprove" data-id="{{ $purchase->id }}" href="{{ route('admin.purchase.disapproval', $purchase->id) }}">
+                              <i class="fas fa-check text-success fa-2x"></i>
+                          </a>
+                      @else
+                          <a class="disapprove_change" data-id="{{ $purchase->id }}" href="{{ route('admin.purchase.disapproval_change', $purchase->id) }}">
+                              <i class="fas fa-times text-danger fa-2x"></i>
+                          </a>
+                          <br>
+                          <span class="reason btn btn-xs btn-primary" data-id="{{ $purchase->id }}" data-range_comment="{{ $purchase->range_comment }}" data-acf_comment="{{ $purchase->acf_comment }}" data-dfo_comment="{{ $purchase->dfo_comment }}">
+                              <i class="fas fa-eye fa-x"></i>
+                          </span>
+                      @endif
+                  </td>
+
+
+
+
                     <td>
                       
                       @if($purchase->app_status == 1)
@@ -198,14 +220,11 @@
                     
                     
                     <td>{{ $purchase->stockType->{'title_'. app()->getLocale()} }}</td>
-                    <td>{{ @$purchase->forestBeat->{'title_'. app()->getLocale()} }} -- {{(app()->getLocale() == 'en') ? @$purchase->forestBeat->bbs_code : NumberToBanglaWord::engToBn(@$purchase->forestBeat->bbs_code)}}</td>
-                    <td>{{ @$purchase->budget->{'title_'. app()->getLocale()} }}</td>
+                    <td>{{ @$purchase->forestBeat->{'title_'. app()->getLocale()} }} {{(app()->getLocale() == 'en') }}</td>
+                   
                     <td>{{(app()->getLocale() == 'en') ? date('d-m-Y', strtotime($purchase->vch_date)) : EnglishToBanglaDate::dateFormatEnglishToBangla(date('d-m-Y', strtotime($purchase->vch_date)))}}</td>
                     <td style="color: {{($purchase->approved) ? 'green':'red'}}" >{{(app()->getLocale() == 'en') ? App\Models\Status::EN1[$purchase->approved] : App\Models\Status::BN1[$purchase->approved]}}</td>
                     <td>{{ @$purchase->approvedBy->{'title_'. app()->getLocale()} }}</td>
-                    
-                    
-                    
 
                       
                   </tr>  
@@ -241,6 +260,145 @@
 
 @section('scripts')
 
+<script>
+
+    $(document).on('click', '.disapprove', function (e) {
+        e.preventDefault();
+
+        var clickedElement = $(this);
+        var idValue = clickedElement.data('id');
+
+        @php
+          $user = Auth::user();
+          $roleId = $user ? $user->role_id : null;
+        @endphp
+
+        if ({{ in_array($roleId, [9, 7, 8]) ? 'true' : 'false' }}) {
+            
+            Swal.fire({
+              title: '{{ __('admin.purchase.disapprove_reason') }}',
+
+                html:
+                    '<form id="myForm" action="/purchaseStore" method="post" >' +
+                    '   @csrf' +
+                    '   <div class="form-group">' +
+                    '       <label for="inputValue">{{ __('admin.purchase.write_reason') }}</label>' +
+                    '       <input type="text" class="form-control" id="inputValue" name="inputValue" placeholder="{{ __('admin.purchase.write_reason') }}">' +
+                    '       <input type="hidden" id="inputId" name="inputId" value="' + idValue + '">' +
+                    '   </div>' +
+                    '   <button type="submit" class="btn btn-primary">{{ __('admin.purchase.submit') }}</button>' +
+                    '</form>',
+                showCancelButton: true,
+                cancelButtonText: '{{ __('admin.purchase.cancel') }}',
+                showConfirmButton: false,
+                focusConfirm: false,
+            });
+        } else {
+           
+            var message = '{{ __('admin.common.error_eligible_msg') }}';
+            Swal.fire({
+                text: message,
+                icon: 'info',
+                confirmButtonText: '{{ __('admin.purchase.cancel') }}',
+            });
+        }
+    });
+</script>
+
+<script>
+
+    $(document).on('click', '.disapprove_change', function (e) {
+        e.preventDefault();
+
+        var clickedElement = $(this);
+        var idValue = clickedElement.data('id');
+
+        @php
+          $user = Auth::user();
+          $roleId = $user ? $user->role_id : null;
+        @endphp
+
+        if ({{ in_array($roleId, [9, 7, 8]) ? 'true' : 'false' }}) {
+            
+            Swal.fire({
+              title: '{{ __('admin.purchase.change_position') }}',
+                html:
+                    '<form id="myForm" action="/purchaseStore_change" method="post" >' +
+                    '   @csrf' +
+                    '   <div class="form-group">' +
+    
+                    '       <input type="hidden" id="inputId" name="inputId" value="' + idValue + '">' +
+                    '   </div>' +
+                    '   <button type="submit" class="btn btn-primary">{{__('admin.common.approve1')}}</button>' +
+                    '</form>',
+                showCancelButton: true,
+                cancelButtonText: '{{ __('admin.purchase.cancel') }}',
+                showConfirmButton: false,
+                focusConfirm: false,
+            });
+        } else {
+           
+          var message = '{{ __('admin.common.error_eligible_msg') }}';
+            Swal.fire({
+                text: message,
+                icon: 'info',
+                confirmButtonText: '{{ __('admin.purchase.cancel') }}',
+            });
+        }
+    });
+</script>
+
+
+<script>
+    $(document).on('click', '.reason', function (e) {
+    e.preventDefault();
+
+    var clickedElement = $(this);
+    var rangeComment = clickedElement.data('range_comment');
+    var acfComment = clickedElement.data('acf_comment');
+    var dfoComment = clickedElement.data('dfo_comment');
+    
+    Swal.fire({
+        title: '',
+        html:
+            '<form id="myForm" action="/purchaseStore_change" method="post" >' +
+            '   @csrf' +
+            (dfoComment ? 
+                '   <div class="form-group">' +
+                '       <label for="dfoComment">{{__('admin.purchase.dfo')}}</label><br>' +
+                '       <span style="height: 100px; width: 300px; display: inline-block; border: none;">' + dfoComment + '</span>' +
+                '   </div>' 
+                : ''
+            ) +
+            
+            (acfComment ? 
+                '   <div class="form-group">' +
+                '       <label for="acfComment">{{__('admin.purchase.acf')}}</label><br>' +
+                '       <span style="height: 100px; width: 300px; display: inline-block; border: none;">' + acfComment + '</span>' +
+                '   </div>' 
+                : ''
+            ) +
+
+            (rangeComment ? 
+                '   <div class="form-group">' +
+                '       <label for="rangeComment">{{__('admin.purchase.range')}}</label><br>' +
+                '       <span style="height: 100px; width: 300px; display: inline-block; border: none;">' + rangeComment + '</span>' +
+                '   </div>' 
+                : ''
+            ) +
+            
+            '</form>',
+        showCancelButton: true,
+        cancelButtonText: '{{ __('admin.purchase.cancel') }}',
+        showConfirmButton: false,
+        focusConfirm: false,
+    });
+});
+
+
+
+</script>
+
 <script src="{{asset('assets/plugins/sweetalert2/sweetalert2.js')}}"></script>
 <script src="{{ asset('assets/plugins/datatables/jquery.dataTables.min.js') }}"></script>
 <script src="{{ asset('assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
@@ -258,6 +416,9 @@
 
 
 <script>
+
+
+
   $(function () {
     $("#example1").DataTable({
       "responsive": true, "lengthChange": false, "autoWidth": false, "ordering": false,
@@ -306,6 +467,31 @@
 <script>
   $(document).ready(function () {
     $(document).on('click', '.approve1', function (e) {
+        e.preventDefault();
+        //console.log($(this).attr('href'))
+        var route = $(this).attr('href');
+        Swal.fire({
+          title: "{{__('admin.common.approve_msg1')}}",
+          showDenyButton: false,
+          showCancelButton: true,
+          cancelButtonText: "{{__('admin.common.cancel')}}",
+          confirmButtonText: "{{__('admin.common.approve1')}}",
+          denyButtonText: "{{__('admin.common.not_save')}}",
+          confirmButtonColor: '#0c890c',
+        }).then((result) => {
+          /* Read more about isConfirmed, isDenied below */
+          if (result.isConfirmed) {
+            window.location.href = route;
+            //console.log(route);
+          } else if (result.isDenied) {
+            Swal.fire("{{__('admin.common.not_save1')}}", '', 'info')
+          }
+        })
+    });
+
+
+
+    $(document).on('click', '.disapprove1', function (e) {
         e.preventDefault();
         //console.log($(this).attr('href'))
         var route = $(this).attr('href');

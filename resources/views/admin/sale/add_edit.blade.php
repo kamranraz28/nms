@@ -275,7 +275,7 @@ rel="stylesheet" type="text/css" /> --}}
                               </select>
                             </div>    
                           @else
-                            <div class="form-group">
+                            <div class="form-group" style="visibility: hidden">
                               <label for="user_id">{{ __('admin.sale.user') }} <span style="color: red"> * </span></label>
                               <select class="form-control select2" name="user_id" id="user_id" required>
                                 <!-- <option value="">{{ __('admin.common.select') }}</option> -->
@@ -286,8 +286,8 @@ rel="stylesheet" type="text/css" /> --}}
                             </div>
                           @endif
                         </div>
-                        <div class="col-md-4">
-                          <label for="" style="visibility: hidden">{{ __('admin.sale.user') }}</label>
+                        <div class="col-md-4" style="visibility: hidden">
+                          <label for="" >{{ __('admin.sale.user') }}</label>
                           <a href="#" class="btn btn-info form-control" data-toggle="modal" data-target="#myModal">
                             {{ (app()->getLocale() == 'en') ? 'Add Customer' : 'ক্রেতা যোগ করুন' }}
                           </a>

@@ -42,7 +42,6 @@ class SaleController extends Controller
   {
     $this->authorize('create',App\Sale::class);
     
-    $nurseries = Nursery::lwd()->get();
     $stock_types = StockType::get();
     $price_types = PriceType::get();
     $categories = Category::get()->where('last',true);
@@ -62,7 +61,7 @@ class SaleController extends Controller
 
     
 
-    return view(self::VIEW_PATH . 'add_edit',compact('categories','stock_types','sales','nurseries','price_types','users','forest_beats','forest_division','budgets'));
+    return view(self::VIEW_PATH . 'add_edit',compact('categories','stock_types','sales','price_types','users','forest_beats','forest_division','budgets'));
   }
 
   public function print(Request $request, $id)
@@ -215,6 +214,118 @@ class SaleController extends Controller
       'alert-type' => 'success'
     ]);
 
+  }
+
+
+  public function disapproval(Request $request)
+{
+  $auth_id = Auth::guard('admin')->user()->id;
+  // dd($auth_id);
+  $UserInfo = Admin:: find($auth_id);
+  // dd($UserInfo);
+  $roleId= $UserInfo->role_id;
+  // dd($roleId);
+  $comment = $request->input('inputValue');
+  // dd($comment);
+  $saleId = $request->input('inputId');
+  // dd($saleId);
+  $saleInfo = Sale::find($saleId);
+  // dd($saleInfo);
+  $status = $saleInfo->app_status;
+  // dd($status);
+  if ($status !=4){
+
+
+  if ($roleId == 9 && $status==1 && $saleInfo) {
+      $saleInfo->update([
+          'range_comment' => $comment,
+      ]);
+  }elseif($roleId == 8 && $status==2 && $saleInfo){
+    $saleInfo->update([
+      'acf_comment' => $comment,
+  ]);
+  }elseif($roleId == 7 && $status==3 && $saleInfo){
+    $saleInfo->update([
+      'dfo_comment' => $comment,
+  ]);
+  }
+  else{
+    return back()->with([
+      'error' => __('admin.common.error_eligible_msg'),
+      'alert-type' => 'error'
+    ]);
+  }
+
+  if ($saleInfo->range_comment || $saleInfo->acf_comment || $saleInfo->dfo_comment) {
+    $saleInfo->update([
+        'disapprove_status' => 1,
+        'app_status' =>1,
+        'approved' =>0,
+    ]);
+}
+else{
+  return back()->with([
+    'error' => __('admin.common.error_eligible_msg'),
+    'alert-type' => 'error'
+  ]);
+}
+  }
+  else{
+    return back()->with([
+      'error' => __('admin.common.error_eligible_msg'),
+      'alert-type' => 'error'
+    ]);
+  }
+
+  return redirect()->back();
+}
+
+
+
+  public function disapproval_change(Request $request)
+  {
+    $auth_id = Auth::guard('admin')->user()->id;
+  // dd($auth_id);
+  $UserInfo = Admin:: find($auth_id);
+  // dd($UserInfo);
+  $roleId= $UserInfo->role_id;
+  // dd($roleId);
+  $saleId = $request->input('inputId');
+  // dd($saleId);
+  $saleInfo = Sale::find($saleId);
+  // dd($saleInfo);
+
+  if ($roleId == 7) {
+    $saleInfo->update([
+        'dfo_comment' => ''
+    ]);
+  }elseif($roleId == 8){
+    $saleInfo->update([
+      'acf_comment' => ''
+  ]);
+  }elseif($roleId == 9){
+    $saleInfo->update([
+      'range_comment' => ''
+  ]);
+  }  else{
+    return back()->with([
+      'error' => __('admin.common.error_eligible_msg'),
+      'alert-type' => 'error'
+    ]);
+  }
+
+  if (empty($saleInfo->dfo_comment) && empty($saleInfo->acf_comment) && empty($saleInfo->range_comment)) {
+    $saleInfo->update([
+        'disapprove_status' => 0
+    ]);
+  }  else{
+    return back()->with([
+      'error' => __('admin.common.error_eligible_msg'),
+      'alert-type' => 'error'
+    ]);
+  }
+
+  return redirect()->back();
   }
 
   public function store(Request $request)

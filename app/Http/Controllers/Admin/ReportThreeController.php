@@ -23,6 +23,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 
+
+use DOMPDF;
+use MPDF;
+
+
 class ReportThreeController extends Controller
 {
   const VIEW_PATH = 'admin.report_three.';
@@ -33,11 +38,19 @@ class ReportThreeController extends Controller
 
   public function index(Request $request)
   {
+
+    $previousState = null;
+    $previousDivision = null;
+    $previousRange = null;
+    $previousBeat = null;
+    $previousCategory = null;
+    $previousProduct = null;
     $this->authorize('read',ReportThree::class);
 
     //Session::forget(['from_date','to_date']);
     $report_threes = [];
     $parameters = [];
+    $footer_report_threes = [];
     @$from_date = date("Y-m-d",strtotime("2015-01-01"));
     @$to_date = Session::get('to_date');
     @$forest_state_id = Session::get('forest_state_id');
@@ -45,6 +58,7 @@ class ReportThreeController extends Controller
     @$forest_range_id = Session::get('forest_range_id');
     @$forest_beat_id = Session::get('forest_beat_id');
     @$category_id = Session::get('category_id');
+    @$plant_id = Session::get('plant_id');
     if ($from_date && $to_date) {
       $parameters['from_date'] = $from_date;
       $parameters['to_date'] = $to_date;
@@ -53,6 +67,7 @@ class ReportThreeController extends Controller
       $parameters['forest_range_id'] = $forest_range_id;
       $parameters['forest_beat_id'] = $forest_beat_id;
       $parameters['category_id'] = $category_id;
+      $parameters['plant_id'] = $plant_id;
 
       //dd($parameters);
 
@@ -78,7 +93,31 @@ class ReportThreeController extends Controller
       foreach ($forest_beats as $key => $forest_beat) {
         $forest_beat_id = $forest_beat->id;
         //dd($forest_beat_id);
-        if ($category_id == 'all') {
+        //db_query from if
+
+if ($category_id == 'all') {
+          $query = DB::table('products as t1')
+                ->select('t1.id','t1.title_en','t1.title_bn','t3.title_en as category_en', 't3.title_bn as category_bn',
+
+                DB::raw("(SELECT(CASE WHEN SUM(t2.quantity) IS NULL THEN 0 ELSE SUM(t2.quantity) END) FROM purchase_details as t2 
+                WHERE t2.product_id = t1.id and t2.approved = 1 and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}')  as stock_in"),
+
+                DB::raw("(SELECT(CASE WHEN SUM(t2.quantity) IS NULL THEN 0 ELSE SUM(t2.quantity) END) FROM sale_details as t2 
+                WHERE t2.approved = 1 and t2.product_id = t1.id and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}' )  as stock_out"),
+
+                DB::raw("(SELECT(CASE WHEN SUM(t2.total) IS NULL THEN 0 ELSE SUM(t2.total) END) FROM sale_details as t2 
+                WHERE t2.approved = 1 and t2.product_id = t1.id and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}' )  as total"),
+
+                DB::raw("((SELECT(CASE WHEN SUM(t2.quantity) IS NULL THEN 0 ELSE SUM(t2.quantity) END) FROM purchase_details as t2 
+                WHERE t2.product_id = t1.id and t2.approved = 1 and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}' ) - 
+                (SELECT(CASE WHEN SUM(t2.quantity) IS NULL THEN 0 ELSE SUM(t2.quantity) END) FROM sale_details as t2 
+                WHERE t2.approved = 1 and t2.product_id = t1.id and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}' ))  as stock"))
+        
+                ->join('categories as t3', 't1.category_id', '=', 't3.id')
+                ->get();
+        } else {
+          
+        if ($plant_id == 'all') {
           $query = DB::table('products as t1')
                 ->select('t1.id','t1.title_en','t1.title_bn','t3.title_en as category_en', 't3.title_bn as category_bn',
 
@@ -117,10 +156,10 @@ class ReportThreeController extends Controller
                 WHERE t2.approved = 1 and t2.product_id = t1.id and t2.forest_beat_id = {$forest_beat_id} and DATE_FORMAT(t2.vch_date,'%Y-%m-%d') BETWEEN '{$from_date}' AND '{$to_date}' ))  as stock"))
         
                 ->join('categories as t3', 't1.category_id', '=', 't3.id')
-                ->where('t1.category_id',$category_id)
+                ->where('t1.id',$plant_id)
                 ->get();
         }
-
+      }
        
         
         
@@ -157,6 +196,9 @@ class ReportThreeController extends Controller
     //$upazilas = Upazila::get();
 
     $categories = Category::where('last',1)->get();
+
+    Session::put(['report_threes'=>$report_threes, 'footer_report_threes'=>$footer_report_threes, 'parameters'=>$parameters]);
+    Session::put(['dreport_threes'=>$report_threes, 'dfooter_report_threes'=>$footer_report_threes, 'dparameters'=>$parameters]);
 
     // $forest_states = ForestState::get();
     // $forest_divisions = ForestDivision::get();
@@ -207,7 +249,7 @@ class ReportThreeController extends Controller
 
 
 
-    return view(self::VIEW_PATH . 'index',compact('report_threes','parameters','divisions','categories','states','forest_states','forest_divisions','forest_ranges','forest_beats'));
+    return view(self::VIEW_PATH . 'index',compact('report_threes','previousState','previousDivision','previousProduct','previousRange','previousBeat','previousCategory','parameters','divisions','categories','states','forest_states','forest_divisions','forest_ranges','forest_beats'));
   }
 
   public function store(Request $request)
@@ -221,12 +263,11 @@ class ReportThreeController extends Controller
     ]);
     
     //return $request->all();
-    Session::forget(['from_date','to_date','forest_state_id','forest_division_id','forest_range_id','forest_beat_id','category_id']);
+    Session::forget(['from_date','to_date','forest_state_id','forest_division_id','forest_range_id','forest_beat_id','category_id','plant_id']);
     Session::put(['from_date'=>$request->from_date,'to_date'=>$request->to_date, 'forest_state_id'=>$request->forest_state_id, 
     'forest_division_id'=>$request->forest_division_id, 'forest_range_id'=>$request->forest_range_id, 'forest_beat_id'=>$request->forest_beat_id,
-    'category_id'=>$request->category_id]);
+    'category_id'=>$request->category_id,'plant_id'=>$request->plant_id,]);
     //dd(Session::all());
-
     return redirect()->route('admin.report_three');
 
   }
@@ -236,6 +277,42 @@ class ReportThreeController extends Controller
     $this->authorize('print',App\ReportThree::class);
     
     return view(self::VIEW_PATH . 'print', compact('report_three'));
+  }
+
+  public function download()
+  {
+    $previousDistrict= null;
+    $previousUpazila= null;
+    $previousBeat= null;
+    $previousState= null;
+    $previousDivision= null;
+    $previousRange = null;
+    $previousBeat = null;
+    $previousCategory = null;
+    $previousProduct = null;
+  
+    $this->authorize('print',App\ReportThree::class);
+
+    $report_threes = [];
+    $footer_report_threes = [];
+    $forest_district_data = [];
+    @$report_threes = Session::get('dreport_threes');
+    @$footer_report_threes = Session::get('dfooter_report_threes');
+    @$parameters = Session::get('dparameters');
+    $categories = Category::where('last',1)->get();
+    //return $report_threes;
+
+    // dd(Session::get('dreport_threes'));
+
+
+    if (Session::get('dreport_threes')) {
+
+      $pdf = MPDF::loadView(self::VIEW_PATH . 'download', compact('previousProduct','previousCategory','previousBeat','previousRange','previousDivision','previousState','report_threes','previousDistrict','previousBeat','previousUpazila','parameters','categories','footer_report_threes','forest_district_data'));
+      
+      return $pdf->download(__('admin.report_three.view') .'.pdf');
+    }else{
+      return redirect()->route('admin.report_three');
+    }
   }
 
 

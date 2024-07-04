@@ -138,6 +138,8 @@ return [
    ],
 
     'common' => [
+        'unmatch' => 'Password does not match, Please try again.',
+        'force_change' =>'Please, Change your password.',
         'export' => 'Download To Excel Sheet',
         'total' => 'Total',
         'en_lang_use' => 'English',
@@ -182,6 +184,8 @@ return [
         'change_password' => 'Change Password',
         'password' => 'Password',
         'password_confirmation' => 'Confirm Password',
+        'new_password' => 'New Password',
+        'new_password_confirmation' => 'Confirm New Password',
         'password_confirm_msg' => 'Are you sure you you want to change password?',
         'submit_confirm_msg' => 'Do you want to save this record?',
         //New
@@ -692,7 +696,7 @@ return [
         'nursery' => 'Nursery Center Name',
         'approved' => 'Approved',
         'total' => 'Total Seedling Raising',
-        'approved_by' => 'Approved By',
+        'approved_by' => 'Latest Approved By',
 
         // New
         'price_type' => 'Polybag/Tob',
@@ -702,8 +706,16 @@ return [
         'forest_division' => 'Forest Division',
         'forest_range' => 'Range/SFNTC',
         'forest_beat' => 'Nursery Center',
-
+        'approval_fault' => 'Allowable ?',
         'approval_status' => 'Approval Status',
+        'disapprove_reason' => 'Reason behind disapprove:',
+        'write_reason' => 'Enter The Reason',
+        'submit' => 'Submit',
+        'cancel' => 'Cancel',
+        'change_position' => 'Are you sure about to change this position?',
+        'range' => 'Range/SFNTC:',
+        'acf' => 'ACF:',
+        'dfo' => 'DFO:',
 
     ],
 
@@ -746,7 +758,7 @@ return [
         'nursery' => 'Nursery Center Name',
         'approved' => 'Approved',
         'total' => 'Total Amount (Taka)',
-        'approved_by' => 'Approved By',
+        'approved_by' => 'Latest Approved By',
         'price_type' => 'Polybag/Tob',
         'budget' => 'Budget',
 
@@ -1042,6 +1054,7 @@ return [
     
     'report_one' => [
         'nursery' => 'Nursery Center Name',
+        'plant_name' => 'Plant Name',
         'total' => 'Total Seedling Sales Amount',
         'view' => 'Date Range Wise Seedling Raising Report',
         'title' => 'Date Range Wise Seedling Raising Report',

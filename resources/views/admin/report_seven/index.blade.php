@@ -186,6 +186,18 @@
 
               <div class="col-md-4">
                 <div class="form-group">
+                  <label for="category_id">{{ __('admin.report_one.category') }}</label>
+                  <select class="form-control select2" name="category_id" id="category_id">
+                    <option value="all">{{ __('admin.common.all') }}</option>
+                    @foreach ($categories as $key => $item)
+                      <option value="{{ $item->id }}" {{(@$parameters['category_id'] == $item->id) ? 'selected' : ''}} >{{ $item->{'title_'. app()->getLocale()} }}</option>
+                    @endforeach
+                  </select>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <div class="form-group">
                   <label for="submit" style="visibility: hidden">Search</label>
                   <button type="submit" id="submit" class="btn btn-info btn-sm form-control save"> 
                     <i class="fas fa-save"></i> {{ __('admin.common.search') }}
@@ -208,6 +220,18 @@
                     </div>
                   @endif
                 @endcan
+
+                @can('print', app('App\Models\ReportSeven'))
+                  @if (count($report_sevens)>0)
+                  <div class="col-12">
+                    <a target="_blank" style="float: right" href="{{route('admin.report_seven.download')}}" rel="noopener" target="_blank" class="btn btn-default"><i class="fas fa-download"></i> 
+                        {{(app()->getLocale() == 'en') ? 'Download' : 'ডাউনলোড করুন'}}
+                      </a>
+                    </div>
+                  @endif
+                @endcan
+
+                
                 
               </div>
             </div>
@@ -267,16 +291,42 @@
                       </tr>
                       </thead>
                       <tbody>
+                      @php
+                        usort($report_sevens, function($a, $b) {
+                        return strcmp($a['district_'. app()->getLocale()], $b['district_'. app()->getLocale()]);
+                        });
+                      @endphp
                       @foreach ($report_sevens as $key => $item)
                       <tr>
-                        <td>{{ $item['district_'. app()->getLocale()] }}</td>
-                        <td>{{ $item['upazila_'. app()->getLocale()] }}</td>
-                        <td>{{ $item['forest_beat_'. app()->getLocale()] }}</td>
+                      <td>
+                        @if ($previousDistrict && $item['district_'. app()->getLocale()] === $previousDistrict)
+                          @else
+                          {{ $item['district_'. app()->getLocale()] }}
+                        @endif
+                     </td>  
+
+                     <td>
+                        @if ($previousUpazila && $item['upazila_'. app()->getLocale()] === $previousUpazila)
+                          @else
+                          {{ $item['upazila_'. app()->getLocale()] }}
+                        @endif
+                      </td>
+                      <td>
+                        @if ($previousBeat && $item['forest_beat_'. app()->getLocale()] === $previousBeat)
+            	            @else
+                          {{ $item['forest_beat_'. app()->getLocale()] }}
+                        @endif
+                      </td>
                         <td>{{(app()->getLocale() == 'en') ? $item['pre_stock'] : NumberToBanglaWord::engToBn($item['pre_stock'])}}</td>
                         <td>{{(app()->getLocale() == 'en') ? $item['current_total_stock_in'] : NumberToBanglaWord::engToBn($item['current_total_stock_in'])}}</td>
                         <td>{{(app()->getLocale() == 'en') ? $item['current_total_stock_out'] : NumberToBanglaWord::engToBn($item['current_total_stock_out'])}}</td>
                         <td>{{(app()->getLocale() == 'en') ? $item['current_total_stock'] : NumberToBanglaWord::engToBn($item['current_total_stock'])}}</td>
                       </tr>
+                      @php
+                        $previousDistrict = $item['district_' . app()->getLocale()];
+                        $previousUpazila = $item['upazila_' . app()->getLocale()];
+                        $previousBeat = $item['forest_beat_' . app()->getLocale()];
+                        @endphp
                       @endforeach
                       
                       @if ($authUser->userType->default_role != Admin::DEFAULT_ROLE_LIST[6])

@@ -59,6 +59,24 @@ class AjaxController extends Controller
         return [];
     }
 
+    public function getPlant($id){
+    
+        $plants = Product::where('category_id', $id)->get();
+        return $plants;
+    }
+
+    public function getPlant2($id){
+    
+        $plants = Product::where('category_id', $id)->get();
+        return $plants;
+    }
+
+    public function getPlant3($id){
+    
+        $plants = Product::where('category_id', $id)->get();
+        return $plants;
+    }
+
     
     public function getForestDivision($id)
     {
@@ -194,10 +212,7 @@ class AjaxController extends Controller
         return [];
     }
 
-
-
-
-    
+ 
     public function getProduct($id = 0)
     {
         if ($id > 0) {

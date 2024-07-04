@@ -36,4 +36,9 @@ class ReportOnePolicy
         return $result = Role::roleHasChildPermissions($admin->role_id,'report_one','report_one.print');
     }
 
+    public function download(Admin $admin)
+    {
+        return $result = Role::roleHasChildPermissions($admin->role_id,'report_one','report_one.download');
+    }
+
 }

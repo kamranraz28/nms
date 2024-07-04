@@ -102,11 +102,11 @@ class Sale extends Model
         return $this->belongsTo(ForestBeat::class,'forest_beat_id');
     }
 
-
-
     public function scopeLwd($query) {
 
-        $authUser = Auth::guard('admin')->user()->load(['userType']);
+        $authUser = Auth::guard('admin')->user();
+        if(!$authUser) $authUser = Auth::guard('api')->user();
+        $authUser = $authUser->load(['userType']);
         
         if($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[6]){
             return $query->where('forest_beat_id',$authUser->forest_beat_id);
@@ -122,4 +122,5 @@ class Sale extends Model
             return $query;
         }
     }
+
 }

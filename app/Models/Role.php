@@ -61,6 +61,15 @@ class Role extends Model
                         $query->where(['id' => $role_id]);
                     })->where(['group_parent_name'=>$group_parent_name])->count();
         return $retVal = ($permission > 0) ? true : false;
+
+        // $roleHasGrantPermissions = Cache::rememberForever('roleHasGrantPermissions', function () use($role_id, $group_parent_name) {
+        //     return $permission = Permission::with('roles')->whereHas('roles', function ($query) use ($role_id, $group_parent_name) {
+        //         $query->where(['id' => $role_id]);
+        //     })->where(['group_parent_name'=>$group_parent_name])->count();
+        // });
+
+        return $retVal = ($roleHasGrantPermissions > 0) ? true : false;
+
     }
 
 
@@ -70,6 +79,16 @@ class Role extends Model
                         $query->where(['id' => $role_id]);
                     })->where(['group_name'=>$group_name])->count();
         return $retVal = ($permission > 0) ? true : false;
+
+        
+        // $roleHasParentPermissions = Cache::rememberForever('roleHasParentPermissions', function () use($role_id, $group_name) {
+        //     return $permission = Permission::with('roles')->whereHas('roles', function ($query) use ($role_id, $group_name) {
+        //         $query->where(['id' => $role_id]);
+        //     })->where(['group_name'=>$group_name])->count();;
+        // });
+
+        return $retVal = ($roleHasParentPermissions > 0) ? true : false;
+
     }
   
     public static function roleHasChildPermissions($role_id, $group_name, $name){

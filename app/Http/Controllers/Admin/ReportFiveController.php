@@ -26,6 +26,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 
+use DOMPDF;
+use MPDF;
+
 class ReportFiveController extends Controller
 {
   const VIEW_PATH = 'admin.report_five.';
@@ -36,12 +39,15 @@ class ReportFiveController extends Controller
 
   public function index(Request $request)
   {
+    $previousDistrict = null;
+    $previousRange = null;
     $this->authorize('read',ReportFive::class);
     
     //Session::forget(['from_date','to_date','from_date_pre','to_date_pre','forest_division_id','budget_id','stock_type_id','forest_range_id','financial_year']);
     
     $report_fives = [];
     $forest_district_data = [];
+    $footer_report_fives = [];
     $parameters = [];
     @$budget_id = Session::get('budget_id');
     @$from_date = Session::get('from_date');
@@ -346,11 +352,17 @@ class ReportFiveController extends Controller
         'current_total_stock_arr' => array_sum($current_total_stock_arr),
       ];
 
+      
+
 
       //dd($report_fives);
 
       
     }
+
+    Session::put(['report_fives'=>$report_fives, 'footer_report_fives'=>$footer_report_fives, 'parameters'=>$parameters]);
+    Session::put(['dreport_fives'=>$report_fives, 'dfooter_report_fives'=>$footer_report_fives, 'dparameters'=>$parameters]);
+
 
     $authUser = Auth::guard('admin')->user()->load(['userType']);
     if ($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[6]){
@@ -392,7 +404,7 @@ class ReportFiveController extends Controller
     $financial_years = FinancialYear::get();
     $stock_types = StockType::get();
 
-    return view(self::VIEW_PATH . 'index',compact('report_fives','parameters','forest_divisions','forest_ranges','forest_beats','budgets','forest_district_data','financial_years','stock_types'));
+    return view(self::VIEW_PATH . 'index',compact('report_fives','previousDistrict','previousRange','parameters','forest_divisions','forest_ranges','forest_beats','budgets','forest_district_data','financial_years','stock_types'));
   }
 
   public function store(Request $request)
@@ -433,6 +445,43 @@ class ReportFiveController extends Controller
     $this->authorize('print',App\ReportFive::class);
     
     return view(self::VIEW_PATH . 'print', compact('report_five'));
+  }
+
+  public function download()
+  {
+    $previousDistrict= null;
+    $previousUpazila= null;
+    $previousBeat= null;
+    $previousState= null;
+    $previousDivision= null;
+    $previousRange = null;
+    $previousBeat = null;
+    $previousCategory = null;
+    $previousProduct = null;
+  
+    $this->authorize('print',App\ReportFive::class);
+
+    $report_fives = [];
+    $footer_report_fives = [];
+    $forest_district_data = [];
+    @$report_fives = Session::get('dreport_fives');
+    @$footer_report_fives = Session::get('dfooter_report_fives');
+    @$parameters = Session::get('dparameters');
+    $categories = Category::where('last',1)->get();
+    //return $report_fives;
+
+    // dd(Session::get('dreport_fives'));
+
+
+    if (Session::get('dreport_fives')) {
+
+      $pdf = MPDF::loadView(self::VIEW_PATH . 'download', compact('previousProduct','previousCategory','previousBeat','previousRange','previousDivision','previousState','report_fives','previousDistrict','previousBeat','previousUpazila','parameters','categories','footer_report_fives','forest_district_data'));
+      
+      return $pdf->download(__('admin.report_five.view') .'.pdf');
+    }else{
+      return redirect()->route('admin.report_five');
+    }
+    
   }
 
 

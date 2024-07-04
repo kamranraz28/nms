@@ -290,6 +290,12 @@ class RoleController extends Controller
         }
       }
     }
+// <<<<<<< HEAD
+// =======
+
+//     //Cache::forget('roleHasGrantPermissions');
+//     //Cache::forget('roleHasParentPermissions');
+// >>>>>>> 1e4d52f6a9cb817d878603677aa1bd37a8c56ed9
     return redirect()->route('admin.role')->with([
       'message' => __('admin.common.success'),
       'alert-type' => 'success'

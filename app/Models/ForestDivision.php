@@ -54,16 +54,18 @@ class ForestDivision extends Model
         return $this->belongsTo(ForestState::class,'forest_state_id');
     }
 
-    public function scopeLwd($query) {
+       public function scopeLwd($query) {
 
-        $authUser = Auth::guard('admin')->user()->load(['userType']);
+        $authUser = Auth::guard('admin')->user();
+        if(!$authUser) $authUser = Auth::guard('api')->user();
+        $authUser = $authUser->load(['userType']);
         
         if($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[6]){
-            return $query->where('id',null);
+            return $query->where('forest_beat_id',$authUser->forest_beat_id);
         } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[5]){
-            return $query->where('id',null);
+            return $query->where('forest_range_id',$authUser->forest_range_id);
         } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[4]){
-            return $query->where('id',$authUser->forest_division_id);
+            return $query->where('forest_division_id',$authUser->forest_division_id);
         } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[3]){
             return $query->where('forest_state_id',$authUser->forest_state_id); // New
         } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[2]){

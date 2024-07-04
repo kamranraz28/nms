@@ -75,12 +75,14 @@ class ForestBeat extends Model
     }
 
 
-    public function scopeLwd($query) {
+        public function scopeLwd($query) {
 
-        $authUser = Auth::guard('admin')->user()->load(['userType']);
+        $authUser = Auth::guard('admin')->user();
+        if(!$authUser) $authUser = Auth::guard('api')->user();
+        $authUser = $authUser->load(['userType']);
         
         if($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[6]){
-            return $query->where('id',$authUser->forest_beat_id);
+            return $query->where('forest_beat_id',$authUser->forest_beat_id);
         } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[5]){
             return $query->where('forest_range_id',$authUser->forest_range_id);
         } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[4]){

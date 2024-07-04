@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Http\Controllers\Admin;
 use App\Models\Sale;
 use App\Models\Admin;
@@ -40,6 +41,9 @@ class ReportNineController extends Controller
 
   public function index(Request $request)
   {
+    $previousDistrict = null;
+    $previousUpazila = null;
+    $previousBeat = null;
     $this->authorize('read',ReportNine::class);
     
     //Session::forget(['from_date','to_date','from_date_pre','to_date_pre','forest_division_id','budget_id','stock_type_id','forest_range_id','financial_year']);
@@ -1215,7 +1219,7 @@ class ReportNineController extends Controller
     Session::put(['report_nines'=>$report_nines, 'footer_report_nines'=>$footer_report_nines, 'parameters'=>$parameters]);
     Session::put(['dreport_nines'=>$report_nines, 'dfooter_report_nines'=>$footer_report_nines, 'dparameters'=>$parameters]);
     
-    return view(self::VIEW_PATH . 'index',compact('report_nines','parameters','forest_divisions','forest_ranges','forest_beats','budgets','forest_district_data','financial_years','stock_types','categories','footer_report_nines'));
+    return view(self::VIEW_PATH . 'index',compact('report_nines','previousDistrict','previousUpazila','previousBeat','parameters','forest_divisions','forest_ranges','forest_beats','budgets','forest_district_data','financial_years','stock_types','categories','footer_report_nines'));
   }
 
   public function store(Request $request)
@@ -1247,7 +1251,7 @@ class ReportNineController extends Controller
     Session::put(['from_date'=>$from_date,'to_date'=>$to_date, 'from_date_pre'=>$from_date_pre,'to_date_pre'=>$to_date_pre, 
     'forest_division_id'=>$request->forest_division_id,'budget_id'=>$request->budget_id,'stock_type_id'=>$request->stock_type_id,
     'forest_beat_id'=>$request->forest_beat_id,'financial_year_id'=>$request->financial_year_id]);
-    //dd(Session::all());
+    // dd(Session::all());
 
     return redirect()->route('admin.report_nine');
 
@@ -1255,6 +1259,9 @@ class ReportNineController extends Controller
 
   public function print()
   {
+    $previousDistrict= null;
+    $previousUpazila= null;
+    $previousBeat= null;
     $this->authorize('print',App\ReportNine::class);
     $report_nines = [];
     $footer_report_nines = [];
@@ -1268,7 +1275,8 @@ class ReportNineController extends Controller
       //$pdf = DOMPDF::loadView(self::VIEW_PATH . 'print', compact('report_nines','parameters','categories','footer_report_nines','forest_district_data'))->setPaper('a4', 'landscape')->setWarnings(false);
       //$pdf = MPDF::loadView(self::VIEW_PATH . 'print', compact('report_nines','parameters','categories','footer_report_nines','forest_district_data'));
       //return $pdf->download(__('admin.report_nine.print') .'.pdf');
-      return view(self::VIEW_PATH . 'print', compact('report_nines','parameters','categories','footer_report_nines','forest_district_data'));
+    $previousUpazila= null;
+      return view(self::VIEW_PATH . 'print', compact('report_nines','previousDistrict','previousBeat','previousUpazila','parameters','categories','footer_report_nines','forest_district_data'));
     }else{
       return redirect()->route('admin.report_nine');
     }
@@ -1277,6 +1285,9 @@ class ReportNineController extends Controller
 
   public function download()
   {
+    $previousDistrict= null;
+    $previousUpazila= null;
+    $previousBeat= null;
     $this->authorize('download',App\ReportNine::class);
     $report_nines = [];
     $footer_report_nines = [];
@@ -1286,19 +1297,20 @@ class ReportNineController extends Controller
     @$parameters = Session::get('dparameters');
     $categories = Category::where('last',1)->get();
     //return $report_nines;
+
+    // dd(Session::get('dreport_nines'));
+
+
     if (Session::get('dreport_nines')) {
 
-      //$pdf = MPDF::loadView(self::VIEW_PATH . 'download', compact('report_nines','parameters','categories','footer_report_nines','forest_district_data'))->setOptions(['dpi' => 150, 'defaultFont' => 'Siyam Rupali'])->setPaper('a4', 'landscape')->setWarnings(false)->save('myfile.pdf');
-      $pdf = MPDF::loadView(self::VIEW_PATH . 'download', compact('report_nines','parameters','categories','footer_report_nines','forest_district_data'));
+      $pdf = MPDF::loadView(self::VIEW_PATH . 'download', compact('report_nines','previousDistrict','previousBeat','previousUpazila','parameters','categories','footer_report_nines','forest_district_data'));
       
       return $pdf->download(__('admin.report_nine.view') .'.pdf');
-      //return view(self::VIEW_PATH . 'download', compact('report_nines','parameters','categories','footer_report_nines','forest_district_data'));
     }else{
       return redirect()->route('admin.report_nine');
     }
     
   }
-
-
+  
 
 }

@@ -148,7 +148,7 @@
                         @endif
 
                         <nav class="login-card-footer-nav">
-                          {{  __('admin.login.manualcaption') }}  <a href="#!">  {{  __('admin.login.manual') }}</a>
+                          {{  __('admin.login.manualcaption') }}  <a href="https://forestnursery.info/site/assets/download/user-manual.pdf" target=_blank>  {{  __('admin.login.manual') }}</a>
                         </nav>
                       </div>
                   </div>

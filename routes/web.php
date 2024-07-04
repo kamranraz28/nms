@@ -26,6 +26,9 @@ Route::get('/upazila/{id?}', ['as'=>'get.upazila','uses'=>'App\Http\Controllers\
 Route::get('/upazila/self/{id?}', ['as'=>'get.upazila.self','uses'=>'App\Http\Controllers\Guest\AjaxController@getUpazilaSelf']);
 
 Route::get('/forest-division/{id?}', ['as'=>'get.forest_division','uses'=>'App\Http\Controllers\Guest\AjaxController@getForestDivision']);
+Route::get('/plant/{id?}', ['as'=>'get.plant','uses'=>'App\Http\Controllers\Guest\AjaxController@getPlant']);
+Route::get('/plant2/{id?}', ['as'=>'get.plant2','uses'=>'App\Http\Controllers\Guest\AjaxController@getPlant2']);
+Route::get('/plant3/{id?}', ['as'=>'get.plant3','uses'=>'App\Http\Controllers\Guest\AjaxController@getPlant3']);
 Route::get('/forest-range/{id?}', ['as'=>'get.forest_range','uses'=>'App\Http\Controllers\Guest\AjaxController@getForestRange']);
 Route::get('/forest-beat/{id?}', ['as'=>'get.forest_beat','uses'=>'App\Http\Controllers\Guest\AjaxController@getForestBeat']);
 Route::get('/forest-beat/forest-division/{id?}', ['as'=>'get.forest_beat.forest_division','uses'=>'App\Http\Controllers\Guest\AjaxController@getForestBeatForestDivision']);
@@ -75,7 +78,7 @@ Route::get('/clear-cache', function() {
 
 //Reoptimized class loader:
 Route::get('/optimize', function() {
-    $exitCode = Artisan::call('optimize');
+    $exitCode = Artisan::call('optimize:clear');
     return '<h1>Reoptimized class loader</h1>';
 });
 
@@ -108,6 +111,11 @@ Route::get('/view-clear', function() {
 Route::get('/storage-link', function() {
     $exitCode = Artisan::call('storage:link');
     return '<h1>Storage Link Created </h1>';
+});
+
+Route::get('/key-gen', function() {
+    $exitCode = Artisan::call('key:generate');
+    return '<h1>Key generated </h1>';
 });
 
 //Clear Config cache:
@@ -166,7 +174,6 @@ Route::group(['middleware'=>'auth:admin', 'prefix'=>'admin','as'=>'admin.'], fun
     Route::get('/dashboard-view-category-range/{id1?}/{id?}', ['as'=>'dashboard.view-category-range','uses'=>'App\Http\Controllers\Admin\DashboardController@viewcategoryrange']);
     Route::get('/dashboard-view-category-bit/{id1?}/{id?}', ['as'=>'dashboard.view-category-bit','uses'=>'App\Http\Controllers\Admin\DashboardController@viewcategorybit']);
     Route::get('/yearl-total-stock/{id?}', ['as'=>'yearl_total_stock','uses'=>'App\Http\Controllers\Admin\DashboardController@yearl_total_stock']);
-
     Route::get('/dashboard-view-seedling/{id?}', ['as'=>'dashboard.view-seedling','uses'=>'App\Http\Controllers\Admin\DashboardController@viewseedling']);
     Route::get('/dashboard-view-seedling-range/{id1?}/{id?}', ['as'=>'dashboard.view-seedling-range','uses'=>'App\Http\Controllers\Admin\DashboardController@viewseedlingrange']);
     Route::get('/dashboard-view-seedling-bit/{id1?}/{id?}', ['as'=>'dashboard.view-seedling-bit','uses'=>'App\Http\Controllers\Admin\DashboardController@viewseedlingbit']);
@@ -615,6 +622,8 @@ Route::group(['middleware'=>'auth:admin', 'prefix'=>'admin','as'=>'admin.'], fun
         
         Route::get('/purchase/view/{id?}', ['as'=>'purchase.view','uses'=>'App\Http\Controllers\Admin\PurchaseController@view'])->middleware('can:view,App\Models\Purchase');
         Route::get('/purchase/approval/{id?}', ['as'=>'purchase.approval','uses'=>'App\Http\Controllers\Admin\PurchaseController@approval'])->middleware('can:approval,App\Models\Purchase');
+        Route::get('/purchase/disapproval/{id?}', ['as'=>'purchase.disapproval','uses'=>'App\Http\Controllers\Admin\PurchaseController@disapproval'])->middleware('can:approval,App\Models\Purchase');
+        Route::get('/purchase/disapproval_change/{id?}', ['as'=>'purchase.disapproval_change','uses'=>'App\Http\Controllers\Admin\PurchaseController@disapproval_change'])->middleware('can:approval,App\Models\Purchase');
 
         Route::get('/purchase/create', ['as'=>'purchase.create','uses'=>'App\Http\Controllers\Admin\PurchaseController@create'])->middleware('can:create,App\Models\Purchase');
 
@@ -635,6 +644,9 @@ Route::group(['middleware'=>'auth:admin', 'prefix'=>'admin','as'=>'admin.'], fun
         Route::get('/sale/view/{id?}', ['as'=>'sale.view','uses'=>'App\Http\Controllers\Admin\SaleController@view'])->middleware('can:view,App\Models\Sale');
         Route::get('/sale/approval/{id?}', ['as'=>'sale.approval','uses'=>'App\Http\Controllers\Admin\SaleController@approval'])->middleware('can:approval,App\Models\Sale');
 
+        Route::get('/sale/disapproval/{id?}', ['as'=>'sale.disapproval','uses'=>'App\Http\Controllers\Admin\SaleController@disapproval'])->middleware('can:approval,App\Models\Sale');
+        Route::get('/sale/disapproval_change/{id?}', ['as'=>'sale.disapproval_change','uses'=>'App\Http\Controllers\Admin\SaleController@disapproval_change'])->middleware('can:approval,App\Models\Sale');
+
         Route::get('/sale/create', ['as'=>'sale.create','uses'=>'App\Http\Controllers\Admin\SaleController@create'])->middleware('can:create,App\Models\Sale');
 
         Route::post('/sale/store', ['as'=>'sale.store','uses'=>'App\Http\Controllers\Admin\SaleController@store'])->middleware('can:create,App\Models\Sale');
@@ -653,17 +665,22 @@ Route::group(['middleware'=>'auth:admin', 'prefix'=>'admin','as'=>'admin.'], fun
         Route::get('/report-one', ['as'=>'report_one','uses'=>'App\Http\Controllers\Admin\ReportOneController@index'])->middleware('can:read,App\Models\ReportOne');
         Route::post('/report-one/store', ['as'=>'report_one.store','uses'=>'App\Http\Controllers\Admin\ReportOneController@store'])->middleware('can:create,App\Models\ReportOne');
         Route::get('/report-one/print/{id?}/{sid?}', ['as'=>'report_one.print','uses'=>'App\Http\Controllers\Admin\ReportOneController@print'])->middleware('can:print,App\Models\ReportOne');
-    
+        Route::get('/report-one/download', ['as'=>'report_one.download','uses'=>'App\Http\Controllers\Admin\ReportOneController@download'])->middleware('can:print,App\Models\ReportOne');
+
+
         //ReportTwo route
         Route::get('/report-two', ['as'=>'report_two','uses'=>'App\Http\Controllers\Admin\ReportTwoController@index'])->middleware('can:read,App\Models\ReportTwo');
         Route::post('/report-two/store', ['as'=>'report_two.store','uses'=>'App\Http\Controllers\Admin\ReportTwoController@store'])->middleware('can:create,App\Models\ReportTwo');
         Route::get('/report-two/print/{id?}/{sid?}', ['as'=>'report_two.print','uses'=>'App\Http\Controllers\Admin\ReportTwoController@print'])->middleware('can:print,App\Models\ReportTwo');
-       
+        Route::get('/report-two/download', ['as'=>'report_two.download','uses'=>'App\Http\Controllers\Admin\ReportTwoController@download'])->middleware('can:print,App\Models\ReportTwo');
+
         //ReportThree route
         Route::get('/report-three', ['as'=>'report_three','uses'=>'App\Http\Controllers\Admin\ReportThreeController@index'])->middleware('can:read,App\Models\ReportThree');
         Route::post('/report-three/store', ['as'=>'report_three.store','uses'=>'App\Http\Controllers\Admin\ReportThreeController@store'])->middleware('can:create,App\Models\ReportThree');
         Route::get('/report-three/print/{id?}/{sid?}', ['as'=>'report_three.print','uses'=>'App\Http\Controllers\Admin\ReportThreeController@print'])->middleware('can:print,App\Models\ReportThree');
-        
+        Route::get('/report-three/download', ['as'=>'report_three.download','uses'=>'App\Http\Controllers\Admin\ReportThreeController@download'])->middleware('can:print,App\Models\ReportThree');
+
+
         //ReportFour route
         Route::get('/report-four', ['as'=>'report_four','uses'=>'App\Http\Controllers\Admin\ReportFourController@index'])->middleware('can:read,App\Models\ReportFour');
         Route::post('/report-four/store', ['as'=>'report_four.store','uses'=>'App\Http\Controllers\Admin\ReportFourController@store'])->middleware('can:create,App\Models\ReportFour');
@@ -673,22 +690,30 @@ Route::group(['middleware'=>'auth:admin', 'prefix'=>'admin','as'=>'admin.'], fun
         Route::get('/report-five', ['as'=>'report_five','uses'=>'App\Http\Controllers\Admin\ReportFiveController@index'])->middleware('can:read,App\Models\ReportFive');
         Route::post('/report-five/store', ['as'=>'report_five.store','uses'=>'App\Http\Controllers\Admin\ReportFiveController@store'])->middleware('can:create,App\Models\ReportFive');
         Route::get('/report-five/print/{id?}/{sid?}', ['as'=>'report_five.print','uses'=>'App\Http\Controllers\Admin\ReportFiveController@print'])->middleware('can:print,App\Models\ReportFive');
-    
+        Route::get('/report-five/download', ['as'=>'report_five.download','uses'=>'App\Http\Controllers\Admin\ReportFiveController@download'])->middleware('can:print,App\Models\ReportFive');
+
+
         //ReportSix route
         Route::get('/report-six', ['as'=>'report_six','uses'=>'App\Http\Controllers\Admin\ReportSixController@index'])->middleware('can:read,App\Models\ReportSix');
         Route::post('/report-six/store', ['as'=>'report_six.store','uses'=>'App\Http\Controllers\Admin\ReportSixController@store'])->middleware('can:create,App\Models\ReportSix');
         Route::get('/report-six/print/{id?}/{sid?}', ['as'=>'report_six.print','uses'=>'App\Http\Controllers\Admin\ReportSixController@print'])->middleware('can:print,App\Models\ReportSix');
-        
+        Route::get('/report-six/download', ['as'=>'report_six.download','uses'=>'App\Http\Controllers\Admin\ReportSixController@download'])->middleware('can:print,App\Models\ReportSix');
+
+
         //ReportSeven route
         Route::get('/report-seven', ['as'=>'report_seven','uses'=>'App\Http\Controllers\Admin\ReportSevenController@index'])->middleware('can:read,App\Models\ReportSeven');
         Route::post('/report-seven/store', ['as'=>'report_seven.store','uses'=>'App\Http\Controllers\Admin\ReportSevenController@store'])->middleware('can:create,App\Models\ReportSeven');
         Route::get('/report-seven/print/{id?}/{sid?}', ['as'=>'report_seven.print','uses'=>'App\Http\Controllers\Admin\ReportSevenController@print'])->middleware('can:print,App\Models\ReportSeven');
-        
+        Route::get('/report-seven/download', ['as'=>'report_seven.download','uses'=>'App\Http\Controllers\Admin\ReportSevenController@download'])->middleware('can:print,App\Models\ReportSeven');
+
+
         //ReportEight route
         Route::get('/report-eight', ['as'=>'report_eight','uses'=>'App\Http\Controllers\Admin\ReportEightController@index'])->middleware('can:read,App\Models\ReportEight');
         Route::post('/report-eight/store', ['as'=>'report_eight.store','uses'=>'App\Http\Controllers\Admin\ReportEightController@store'])->middleware('can:create,App\Models\ReportEight');
         Route::get('/report-eight/print/{id?}/{sid?}', ['as'=>'report_eight.print','uses'=>'App\Http\Controllers\Admin\ReportEightController@print'])->middleware('can:print,App\Models\ReportEight');
-        
+        Route::get('/report-eight/download', ['as'=>'report_eight.download','uses'=>'App\Http\Controllers\Admin\ReportEightController@download'])->middleware('can:print,App\Models\ReportEight');
+
+
         //ReportNine route
         Route::get('/report-nine', ['as'=>'report_nine','uses'=>'App\Http\Controllers\Admin\ReportNineController@index'])->middleware('can:read,App\Models\ReportNine');
         Route::post('/report-nine/store', ['as'=>'report_nine.store','uses'=>'App\Http\Controllers\Admin\ReportNineController@store'])->middleware('can:create,App\Models\ReportNine');
@@ -698,6 +723,14 @@ Route::group(['middleware'=>'auth:admin', 'prefix'=>'admin','as'=>'admin.'], fun
     });
 
 });
+
+Route::post('/purchaseStore', ['as'=>'purchaseStore','uses'=>'App\Http\Controllers\Admin\PurchaseController@disapproval']);
+Route::post('/purchaseStore_change', ['as'=>'purchaseStore_change','uses'=>'App\Http\Controllers\Admin\PurchaseController@disapproval_change']);
+
+
+Route::post('/saleStore', ['as'=>'saleStore','uses'=>'App\Http\Controllers\Admin\SaleController@disapproval']);
+Route::post('/saleStore_change', ['as'=>'saleStore_change','uses'=>'App\Http\Controllers\Admin\SaleController@disapproval_change']);
+
 
 
 

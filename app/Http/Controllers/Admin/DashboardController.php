@@ -52,8 +52,10 @@ class DashboardController extends Controller
       
       $yearl_total_stock = [];
       $financial_years = FinancialYear::get();
+      // dd($financial_years);
 
       $financial_year = FinancialYear::latest()->first();
+      // dd($financial_year);
 
       $yearl_total_stock = self::yearl_total_stock($financial_year->id);
       //dd($yearl_total_stock);

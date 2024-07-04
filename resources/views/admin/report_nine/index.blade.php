@@ -182,6 +182,21 @@
               </div>
 
               <div class="col-md-4">
+                <!-- <div class="form-group">
+                  <label for="stock_type_id">{{ __('admin.report_nine.stock_type') }}</label>
+                  <select class="form-control select2" name="stock_type_id" id="stock_type_id" required>
+                    <option value="all">{{ __('admin.common.all') }}</option>
+                    @foreach ($stock_types as $key => $item)
+                      <option value="{{ $item->id }}" {{(@$parameters['stock_type_id'] == $item->id) ? 'selected' : ''}} >{{ $item->{'title_'. app()->getLocale()} }}</option>
+                    @endforeach
+                  </select>
+                </div> -->
+              </div>
+
+
+              
+
+              <div class="col-md-4">
                 <div class="form-group">
                   <label for="submit" style="visibility: hidden">Search</label>
                   <button type="submit" id="submit" class="btn btn-info btn-sm form-control save"> 
@@ -207,6 +222,9 @@
                       </a>
                       @endif
                   @endcan
+
+                  
+
 
                   @can('print', app('App\Models\ReportNine'))
                     @if (count($report_nines)>0)
@@ -306,11 +324,34 @@
                       </thead>
                       <tbody>
 
+                      @php
+                          usort($report_nines, function($a, $b) {
+                          return strcmp($a['district_'. app()->getLocale()], $b['district_'. app()->getLocale()]);
+                          });
+                      @endphp
                         @foreach ($report_nines as $key=>$item)
                         <tr>
-                          <td>{{ $item['district_'. app()->getLocale()] }}</td>
-                          <td>{{ $item['upazila_'. app()->getLocale()] }}</td>
-                          <td>{{ $item['forest_beat_'. app()->getLocale()] }}</td>
+                         
+                          <td>
+                          @if ($previousDistrict && $item['district_'. app()->getLocale()] === $previousDistrict)
+            	            @else
+                            {{ $item['district_'. app()->getLocale()] }}
+                          @endif
+                        </td>   
+
+                          <td>
+                          @if ($previousUpazila && $item['upazila_'. app()->getLocale()] === $previousUpazila)
+            	            @else
+                            {{ $item['upazila_'. app()->getLocale()] }}
+                          @endif
+                        </td>
+                          
+                          <td>
+                          @if ($previousBeat && $item['forest_beat_'. app()->getLocale()] === $previousBeat)
+            	            @else
+                            {{ $item['forest_beat_'. app()->getLocale()] }}
+                          @endif
+                        </td>
                         
                           @php
                             $opening_stock_total = [];
@@ -322,6 +363,11 @@
                             <td>
                               {{(app()->getLocale() == 'en') ? $item1 : NumberToBanglaWord::engToBn($item1)}}
                             </td>
+                            @php
+                        $previousDistrict = $item['district_' . app()->getLocale()]; //Current State storing for comparison
+                        $previousUpazila = $item['upazila_' . app()->getLocale()];
+                        $previousBeat = $item['forest_beat_' . app()->getLocale()];
+                      @endphp
                           @endforeach
                           <td>
                             {{(app()->getLocale() == 'en') ? array_sum($opening_stock_total) : NumberToBanglaWord::engToBn(array_sum($opening_stock_total))}}

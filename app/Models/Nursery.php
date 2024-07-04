@@ -68,22 +68,26 @@ class Nursery extends Model
     }
 
 
-    public function scopeLwd($query) {
+      public function scopeLwd($query) {
 
-        $authUser = Auth::guard('admin')->user()->load(['userType']);
+        $authUser = Auth::guard('admin')->user();
+        if(!$authUser) $authUser = Auth::guard('api')->user();
+        $authUser = $authUser->load(['userType']);
         
         if($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[6]){
-            return $query->where('upazila_id',$authUser->upazila_id);
+            return $query->where('forest_beat_id',$authUser->forest_beat_id);
         } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[5]){
-            return $query->where('district_id',$authUser->district_id);
+            return $query->where('forest_range_id',$authUser->forest_range_id);
         } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[4]){
-            return $query->where('division_id',$authUser->division_id);
+            return $query->where('forest_division_id',$authUser->forest_division_id);
         } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[3]){
-            return $query->where('state_id',$authUser->state_id); // New
+            return $query->where('forest_state_id',$authUser->forest_state_id); // New
         } elseif($authUser->userType->default_role == Admin::DEFAULT_ROLE_LIST[2]){
             return $query;
         } else{
             return $query;
         }
     }
+    
+    
 }
